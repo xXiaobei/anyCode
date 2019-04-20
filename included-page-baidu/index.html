@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <title>百度收录查询</title>
+</head>
+
+<body>
+    <div class="container">
+        <p>&nbsp;</p>
+        <h3>
+            百度收录查询&emsp;
+            <small style="color:#428BCA;font-weight:bold;">总域名：<span style="color:red;" id="g_domains"></span></small>&emsp;
+            <small style="color:#428BCA;font-weight:bold;">收录的域名：<span style="color:red;" id="g_inc_domains"></span></small>&emsp;
+            <small style="color:#428BCA;font-weight:bold;">收录的总页面：<span style="color:red;" id="g_included"></span></small>&emsp;
+            <small style="color:#428BCA;font-weight:bold;">总收录占比：<span style="color:red;"id="g_percents"></span>%</small>&emsp;
+        </h3>
+        <hr>
+        <p><a class="btn btn-primary" href="#" role="button" onclick="init_data()">开始收录查询...</a></p>
+        <ul id="fileTips" class="list-group"></ul>
+        <hr>
+        <p id="msgTips" class="alert alert-success"></p>
+    </div>
+
+    <script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+    <script src="http://cdn.bootcss.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
+    <script type="text/javascript">
+        var g_counter = 0;// 所有文件中的域名总数
+        var g_included = 0;// 所有文件中的域名总的收录量
+        var g_domain_counter = 0;//所有文件中域名的收录次数
+
+
+        function init_data() {
+            $.getJSON(
+                "slbaidu.php",
+                { "type": "init" },
+                function (data) {
+                    g_counter = 0;
+                    g_included = 0;
+                    g_domain_counter = 0;
+                    $("#fileTips").html("");//清空提示区域的信息
+                    
+                    for (let i = 0; i < data.length; i++) {
+                        g_counter += parseInt(data[i].dlist.length);
+                        $("#g_domains").html(g_counter);
+
+                        var c_domain_counter = 0; //当前文件中的域名收录次数
+                        htmls_file(data[i].name, data[i].dlist.length, i); // 生成提示信息
+                        query_included(0, data[i].dlist, i, c_domain_counter);// 递归调用，避免产生过多的异步请求，导致请求失败
+                    }
+                    console.log(data);
+                }
+            );
+        }
+
+        function htmls_file(fname, dcounter, c_index) {
+            let span_cur = "span_" + c_index + "_current";
+            let span_inc = "span_" + c_index + "_included";
+            let span_per = "span_" + c_index + "_percent";
+            let span_dom = "span_" + c_index + "_domains";
+            $("#fileTips").append($("<li class=\"list-group-item\">"
+                + "&emsp;<span class=\"glyphicon glyphicon-file\">文件</span>：" + fname
+                + "&emsp;<span class=\"glyphicon glyphicon-flash\">当前进度</span> " + dcounter + "/<span id=\"" + span_cur + "\"></span> \t "
+                + "&emsp;<span class=\"glyphicon glyphicon-paperclip\">收录的域名</span> <span id=\"" + span_dom + "\"></span> \t "
+                + "&emsp;<span class=\"glyphicon glyphicon-share-alt\">收录的总页面</span> <span id=\"" + span_inc + "\"></span> \t "
+                + "&emsp;<span class=\"glyphicon glyphicon-transfer\">收录占比</span> <span id=\"" + span_per + "\"></span></li>"));
+        }
+
+        //请求接口 查询当前域名的收录
+        function query_included(c_index, list_data, p_index, c_domain_counter) {
+            if (c_index < list_data.length) {
+                var domain = list_data[c_index].replace("\r\n", "");
+                $.ajax({
+                    method: "GET",
+                    data: { "url": domain },
+                    url: "https://api.qqsuu.net/api/site",
+                    success: function (data) {
+                        let tips = "";
+                        c_index += 1; //请求下一个域名收录情况
+
+                        $("#span_" + p_index + "_current").html(c_index); // 当前进度
+                        let obj_includ = $("#span_" + p_index + "_included");
+                        if (data.code == "200") {
+                            c_domain_counter += 1;
+                            g_domain_counter += 1;
+                            
+                            $("#span_" + p_index + "_domains").html(c_domain_counter);// 当文件中以被收录的域名数
+
+                            let obj_text = obj_includ.html().trim();
+                            let t_counter = obj_text == "" ? 0 : parseInt(obj_text);
+                            t_counter += parseInt(data.num);
+                            obj_includ.html(t_counter); // 当前收录总数                            
+
+                            let c_percent = ((c_domain_counter / parseInt(list_data.length)) * 100).toFixed(2) + " %";
+                            $("#span_" + p_index + "_percent").html(c_percent);// 当前收录占比
+                            
+                            $("#g_inc_domains").html(g_domain_counter); //记录已被收录的域名数
+                            g_included += parseInt(data.num); //记录总收录量                            
+                            $("#g_included").html(g_included);
+                            $("#g_percents").html((g_domain_counter / g_counter * 100).toFixed(2)); // 总收录占比
+
+                            tips = "域名：" + domain + " 收录数为：" + data.num;
+                        } else {
+                            tips = "域名：" + domain + " 未被百度收录..."
+                        }
+
+                        $("#msgTips").html(tips);
+
+                        query_included(c_index, list_data, p_index, c_domain_counter);
+                    }
+                });
+            }
+        }
+
+
+    </script>
+</body>
+
+</html>

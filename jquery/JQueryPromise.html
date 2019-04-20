@@ -1,0 +1,73 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    　
+    <script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-2.1.4.min.js"></script>
+    <script>
+        function test() {
+            _db_connection()
+                .then(_db_query_arctypes, _ayn_error)
+                .then(_db_query_siteName, _ayn_error);
+            /*_db_connection().then(function (data) {
+                console.log("reslove" + data);
+            }, function (data) {
+                console.log("error" + data);
+            })*/
+        }
+
+        // 异步失败回调
+        function _ayn_error(error) {
+            console.log(error);
+        }
+
+        // 链接数据
+        function _db_connection() {
+            let def = $.Deferred();
+            $.getJSON('/JQueryPromise.php',
+                { "key": "db_init" },
+                function (data) {
+                    def.resolve(data);
+                    console.log("_db_connection" + data.msg);
+                });
+            return def.promise();
+        }
+
+        //获取栏目
+        function _db_query_arctypes(data) {
+            let def = $.Deferred();
+            if (data.type == "success") {
+                $.getJSON('/JQueryPromise.php',
+                    { "key": "db_lanmu" },
+                    function (data) {
+                        def.resolve(data);
+                        console.log("_db_query_arctypes" + data.msg);
+                    });
+            }
+            return def.promise();
+        }
+
+        //获取网站名称
+        function _db_query_siteName(data) {
+            let def = $.Deferred();
+            if (data.type == "success") {
+                $.getJSON('/JQueryPromise.php',
+                    { "key": "db_sitename" },
+                    function (data) {
+                        def.resolve(data);
+                        console.log("_db_query_siteName" + data.msg);
+                    });
+            }
+            return def.promise();
+        }
+
+
+
+    </script>
+</head>
+
+<body>
+    <input type="button" onclick="test()" value="Test Juqery Queue...">
+</body>
+
+</html>
