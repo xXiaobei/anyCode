@@ -50,9 +50,12 @@ ROBOTSTXT_OBEY = False  # 修改为False 不遵循robots.txt 的协议
 
 # Override the default request headers:
 DEFAULT_REQUEST_HEADERS = {
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0'
+    'Accept':
+    'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language':
+    'en-US,en;q=0.5',
+    'User-Agent':
+    'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0'
 }
 
 # Enable or disable spider middlewares
@@ -78,7 +81,7 @@ DEFAULT_REQUEST_HEADERS = {
 ITEM_PIPELINES = {
     # 300 为管道执行的权重因子,越小执行优先度越高
     # 权重因子的范围在1到1000
-    'domainmirror.pipelines.FileDownloandPipeline': 300
+    'domainmirror.pipelines.FileDownloandPipeline': 1
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

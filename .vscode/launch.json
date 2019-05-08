@@ -11,6 +11,17 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "pythonPath": "${config:python.pythonPath}"
+        },
+        {
+            "name": "anyCode Scrapy",
+            "type": "python",
+            "request": "launch",
+            "module": "scrapy",
+            "args": [
+                "crawl",
+                "mirror"
+            ],
+            "cwd": "${workspaceFolder}/domainmirror/domainmirror"
         }
     ]
 }

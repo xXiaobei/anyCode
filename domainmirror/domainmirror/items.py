@@ -8,7 +8,7 @@
 from scrapy import Item, Field
 
 
-class UlrItem(Item):
+class UrlItem(Item):
     """
     用于下载css、image、js文件
     """

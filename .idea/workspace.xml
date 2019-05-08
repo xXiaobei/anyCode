@@ -2,22 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="92d1c360-79ba-4c0c-8e4f-f7e444de16ed" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/anyCode.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/domainmirror/domainmirror/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/domainmirror/domainmirror/helperfunctions.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/domainmirror/domainmirror/items.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/domainmirror/domainmirror/middlewares.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/domainmirror/domainmirror/pipelines.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/domainmirror/domainmirror/settings.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/domainmirror/domainmirror/spiders/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/domainmirror/domainmirror/spiders/mirror.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/domainmirror/scrapy.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/seoKeywords/t.py" beforeDir="false" afterPath="$PROJECT_DIR$/seoKeywords/t.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vscode/settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/.vscode/settings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/domainmirror/domainmirror/pipelines.py" beforeDir="false" afterPath="$PROJECT_DIR$/domainmirror/domainmirror/pipelines.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/domainmirror/domainmirror/spiders/mirror.py" beforeDir="false" afterPath="$PROJECT_DIR$/domainmirror/domainmirror/spiders/mirror.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -30,8 +18,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/domainmirror/domainmirror/spiders/mirror.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="486">
-              <caret line="27" lean-forward="true" selection-start-line="27" selection-end-line="27" />
+            <state relative-caret-position="270">
+              <caret line="15" column="29" lean-forward="true" selection-start-line="15" selection-start-column="29" selection-end-line="15" selection-end-column="29" />
               <folding>
                 <element signature="e#24#37#0" expanded="true" />
               </folding>
@@ -51,8 +39,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/domainmirror/domainmirror/items.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="396">
-              <caret line="22" selection-start-line="22" selection-end-line="22" />
+            <state relative-caret-position="306">
+              <caret line="17" column="23" lean-forward="true" selection-start-line="17" selection-start-column="23" selection-end-line="17" selection-end-column="23" />
             </state>
           </provider>
         </entry>
@@ -60,11 +48,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/domainmirror/domainmirror/pipelines.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="259">
-              <caret line="16" column="29" selection-start-line="16" selection-start-column="29" selection-end-line="16" selection-end-column="29" />
-              <folding>
-                <element signature="e#195#243#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="241">
+              <caret line="15" column="29" selection-start-line="15" selection-start-column="29" selection-end-line="15" selection-end-column="29" />
             </state>
           </provider>
         </entry>
@@ -122,7 +107,7 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="7">
+  <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="260" />
     <option name="y" value="55" />
     <option name="width" value="1400" />
@@ -262,14 +247,20 @@
       <option name="project" value="LOCAL" />
       <updated>1557132156274</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="2019/5/8 scrapy 镜像站">
+      <created>1557287804642</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1557287804642</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="30" width="1920" height="1050" extended-state="6" />
-    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.49945828" visible="true" weight="0.1814346" />
+      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49945828" visible="true" weight="0.1814346" />
       <window_info id="Structure" order="1" sideWeight="0.5005417" side_tool="true" weight="0.1814346" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -280,7 +271,7 @@
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Version Control" order="7" />
-      <window_info anchor="bottom" id="Terminal" order="8" visible="true" weight="0.32900432" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="8" visible="true" weight="0.32900432" />
       <window_info anchor="bottom" id="Event Log" order="9" sideWeight="0.50052744" side_tool="true" weight="0.32936078" />
       <window_info anchor="bottom" id="Python Console" order="10" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
@@ -290,7 +281,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="2019/5/6 百度相关词挖掘工具,待完善&#10;TODO：可以利用baidu的短语相似度api,匹配更高质量的词&#10;      可以加入baidu的下拉框词" />
-    <option name="LAST_COMMIT_MESSAGE" value="2019/5/6 百度相关词挖掘工具,待完善&#10;TODO：可以利用baidu的短语相似度api,匹配更高质量的词&#10;      可以加入baidu的下拉框词" />
+    <MESSAGE value="2019/5/8 scrapy 镜像站" />
+    <option name="LAST_COMMIT_MESSAGE" value="2019/5/8 scrapy 镜像站" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>
@@ -364,11 +356,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/domainmirror/domainmirror/pipelines.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="259">
-          <caret line="16" column="29" selection-start-line="16" selection-start-column="29" selection-end-line="16" selection-end-column="29" />
-          <folding>
-            <element signature="e#195#243#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="241">
+          <caret line="15" column="29" selection-start-line="15" selection-start-column="29" selection-end-line="15" selection-end-column="29" />
         </state>
       </provider>
     </entry>
@@ -401,15 +390,15 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/domainmirror/domainmirror/items.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="396">
-          <caret line="22" selection-start-line="22" selection-end-line="22" />
+        <state relative-caret-position="306">
+          <caret line="17" column="23" lean-forward="true" selection-start-line="17" selection-start-column="23" selection-end-line="17" selection-end-column="23" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/domainmirror/domainmirror/spiders/mirror.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="486">
-          <caret line="27" lean-forward="true" selection-start-line="27" selection-end-line="27" />
+        <state relative-caret-position="270">
+          <caret line="15" column="29" lean-forward="true" selection-start-line="15" selection-start-column="29" selection-end-line="15" selection-end-column="29" />
           <folding>
             <element signature="e#24#37#0" expanded="true" />
           </folding>

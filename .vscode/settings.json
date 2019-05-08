@@ -1,9 +1,17 @@
 {
-    "python.pythonPath": "/home/bbei/envPython/anycode/bin/python3",
+    "python.pythonPath": "/home/bbei/envPython/anycode/bin/python",
     "editor.fontSize": 15,
     "python.formatting.provider": "yapf",
-    "python.formatting.yapfPath": "/home/bbei/envPython/anycode/lib/python3.7/site-packages/yapf",
+    "python.formatting.yapfPath": "/home/bbei/envPython/anycode/bin/yapf",
     "python.linting.pylintArgs": [
         "--disable=too-many-function-args"
-    ]
+    ],
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/*.pyc":true,
+        "**/.DS_Store": true
+    }
 }
