@@ -14,7 +14,7 @@ BOT_NAME = 'domainmirror'
 SPIDER_MODULES = ['domainmirror.spiders']
 NEWSPIDER_MODULE = 'domainmirror.spiders'
 
-# 文件保存路径
+# 文件保存路径 路径结尾不要带 / （方便与网站路径匹配）
 FILE_STORE = '/home/bbei/Documents/pySpider/domainMirror'
 # 图片下载保存路径
 IMAGES_STORE = ''
