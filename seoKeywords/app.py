@@ -1,3 +1,5 @@
+#encoding:utf-8
+
 """
 挖词工具
 """
@@ -8,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import re, time, os
+from aip import AipNlp  # 百度云计算自然语言api
 
 # browser = webdriver.Chrome(executable_path='/home/bbei/envPython/anycode/chromedriver')
 # 在网上下载好 chromedriver 后，移动到 /usr/local/bin 下，不用在启动chrome指定 chromedriver的路径
@@ -25,8 +28,12 @@ def keywords_relations(kw_search):
     list_relations = []
     try:
         browser.get("https://www.baidu.com")
-        txt_search = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#kw')))
-        bnt_submit = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#su")))
+        #browser.get("https://m.baidu.com")
+        
+        txt_search = wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '#kw')))
+        bnt_submit = wait.until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "#su")))
 
         txt_search.send_keys(kw_search)
         bnt_submit.click()
@@ -34,13 +41,16 @@ def keywords_relations(kw_search):
         # 当出现“下一页”按钮时，认为当前所有页面完全加载
         # 或者出现相关搜索（#rs > div）时，认为当前页面完全加载
         # 若没有相关搜索和“下一页”按钮，则认为该关键词被屏蔽
-        bnt_next = right_conditions(EC.element_to_be_clickable((By.CSS_SELECTOR, "#page > a.n")))
-        kw_relations = right_conditions(EC.presence_of_element_located((By.CSS_SELECTOR, "#rs")))
+        bnt_next = right_conditions(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "#page > a.n")))
+        kw_relations = right_conditions(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#rs")))
         if not bnt_next and not kw_relations:
             return []
 
         if kw_relations:
-            links = kw_relations.find_elements_by_xpath(".//table/tbody/tr/th/a")
+            links = kw_relations.find_elements_by_xpath(
+                ".//table/tbody/tr/th/a")
             if links:
                 for lnk in links:
                     list_relations.append(lnk.text)

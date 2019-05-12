@@ -1,41 +1,8 @@
 import re
 from urllib.parse import urlparse, urljoin
-from os.path import basename, dirname,join
+from os.path import basename, dirname, join
 from tldextract import extract
-
-class Page:
-    """
-    页面抽象类
-    用于存储页面相关信息
-    """
-    # category 为一个set访问器 记录当前网站所有栏目
-    category = set()
-    # 每个栏目的page总数
-    category_pages = 0
-    # urls 为列表，记录当前页面所有有效的href
-    urls = []
-    # 当前网站的所有的动态链接，以及每个动态链接对应的静态链接
-    # 用于将动态链接静态化
-    dynamic_urls = []
-
-    def __init__(self, site_url, title, kw, desc, content=""):
-        self.title = title
-        self.keywords = kw
-        self.description = desc
-        self.content = content
-        self.site_url = site_url
-
-    @property
-    def site_url(self):
-        return self.site_url
-
-    @site_url.setter
-    def site_url(self, value):
-        if "http" in value:
-            value = value.replace("http://", "")
-        if "www." in value:
-            value = value.replace("www.", "")
-        self.site_url = value
+from aip import AipNlp
 
 
 def test():
@@ -66,11 +33,31 @@ def testurl():
     print("http://www.baidu.com/list.php?id")
     print(basename("/xinwen/guonei/index.html"))
     print(urlparse("/xinwen/guonei/index.html"))
-    print(join("/xinwen/guonei/","index.html"))
+    print(join("/xinwen/guonei/", "index.html"))
+
+
+def baiduapi():
+    APP_ID = '16170203'
+    APP_KEY = 'TQRGlbD2wk9RiG7B48GmHXhV'
+    SECRET_KEY = 'LM5F0BGMCnyRyoiQvMPr6ygoyPmq3OqB'
+
+    keywords = '今晚开什么生肖'
+    result_words = [
+        '明晚开什么生肖',
+        '子鼠_百度百科', '生肖兔龙蛇恭喜啦!今晚你们可能要中大奖_网易体育',
+        '2017开始,顺到极致的三大生肖-凤凰视频-最具媒体品质的综..', '一家之中的生肖组合,最不宜出现什么组合?'
+    ]
+
+    client = AipNlp(APP_ID, APP_KEY, SECRET_KEY)
+
+    for k in result_words:
+        res = client.simnet(keywords, k)
+        print(res)
 
 
 if __name__ == "__main__":
-    testurl()
+    # baiduapi()
+    #testurl()
     # list_t = testlist()
     # for x in list_t:
     #     print(x)
@@ -81,4 +68,5 @@ if __name__ == "__main__":
     #     file_content += kw + "\n"
     # with open(file_path, 'w') as f:
     #     f.write(file_content)
-    # print('关键词结果已经报错到文件 zhaoshengxiao.txt ')
+    t = u"\ue780第 10 页"
+    print(t.split(" "))
