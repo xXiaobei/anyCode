@@ -5,12 +5,14 @@
 # 2：搜索结果没有10页，且第一页搜索结果没有包含5条关键词收录
 """
 
+import os
 from selenium import webdriver
 from selenium.webdriver import ChromeOptions
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from sqlitehelper import dbHelper
 
 
 class MobileKeywords:
@@ -18,27 +20,52 @@ class MobileKeywords:
     百度手机端关键词挖掘
     """
 
-    def __init__(self, tag_url, tag_kw, wait_seconds):
+    def __init__(self, tag_url, tag_kw, wait_seconds, f_kw, i_kw):
         """
         初始化
         :param tag_url:需要加载的网页地址
         :param wait_seconds:显示等待时间，默认为10S
         """
         self.url = tag_url
+        self.seconds = wait_seconds
         self.keywords = tag_kw
+        self.dbHelper = None  # 数据库辅助类
         self.retry_counter = 1  # 失败重试次数
         self.title_counter = 5  # 关键词在搜索结果中出现的次数
         self.page_keywords = 0  # 关键词搜索结果总页
-        self.res_keywords = {"valid": True, "sub_keywords": []}
+        self.total_keywords = 0  # 总关键词记数
+        self.file_save_path = "" # 关键词文件保存路径
+        self.filter_keywords = f_kw  # 过滤的关键词（关键词不得出现该列表中的任何词）
+        self.include_keywords = i_kw  # 包含关键词（关键词中必须包含该列表中的任何一个词）
+        self.res_keywords = {"valid": False, "sub_keywords": []}
         self.browser = webdriver.Chrome(chrome_options=self.init_driver())
         self.wait = WebDriverWait(self.browser, wait_seconds)
+
+    def init_save_info(self):
+        """
+        初始化关键词保存相关
+        """
+        try:
+            file_path = '/home/bbei/Documents/baiduci/'
+            if not os.path.exists(file_path):
+                os.makedirs(file_path)
+            file_name = os.path.join(file_path, u"{}.txt".format(self.keywords))
+            self.file_save_path = file_name
+            print(u"-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-")
+            print(u"==关键词保存路径为：{}".format(self.file_save_path))
+            print(u"-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-")
+        except:
+            print(u"===关键词结果保存文件创建出错，请重试...")
+            os._exit(0)
 
     def init_driver(self):
         """
         webdriver 配置项
         """
         opt = ChromeOptions()
-        prefs = {"profile.managed_default_content_settings.images": 2} # 禁止加载图片
+        prefs = {
+            "profile.managed_default_content_settings.images": 2
+        }  # 禁止加载图片
         opt.add_experimental_option("prefs", prefs)
         opt.add_argument("blink-settings=imagesEnabled=false")  # 禁止加载图片
         opt.add_argument('--headless')  # 无界面模式
@@ -47,6 +74,51 @@ class MobileKeywords:
             "user-agent='Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0'"
         )  # 自定义请求头
         return opt
+
+    def status_rest(self):
+        """
+        状态初始化，为下一个关键词准备
+        """
+        self.title_counter = 5
+        self.page_keywords = 0
+        self.retry_counter = 1
+        self.res_keywords = {"valid": False, "sub_keywords": []}
+
+    def restart_driver(self):
+        """
+        当超时发生后，清理当前游览器，重新赋值
+        """
+        self.wait = None
+        self.browser.quit()
+        self.browser = webdriver.Chrome(self.init_driver())
+        self.wait = WebDriverWait(self.browser, self.seconds)
+
+    def request_url(self, req_url, tipMsg):
+        """
+        请求给定的网站，超时进行默认次数的重试，成功则返回页面，反之返回None
+        """
+        try:
+            if self.retry_counter > 1:
+                self.restart_driver()
+            self.browser.get(req_url)
+            return True
+        except TimeoutException as ex:
+            if self.retry_counter <= 1:
+                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg, self.retry_counter))
+                self.retry_counter += 1
+                self.request_url(req_url, tipMsg)
+            else:
+                self.retry_counter = 1
+                return None
+
+    def write_file(self,kw_data):
+        """
+        将关键词写入文件
+        """
+        with open(self.file_save_path, 'a+') as f:
+            s = "\n".join(s for s in kw_data)
+            f.write(s)
+        kw_data.clear() # 清空，为下次准备
 
     def ele_waiting(self, selector, selector_type, wait_type, retry):
         """
@@ -67,7 +139,7 @@ class MobileKeywords:
             if selector_type == "xpath":
                 ele = self.wait.until(cur_wait_type((By.XPATH, selector)))
             return ele
-        except TimeoutError as ex:
+        except TimeoutException as ex:
             print(u"Elements can't loaded {}" + str(ex))
             if retry and self.retry_counter <= 1:  # 默认重试1次，超过重试次数则直接返回结果
                 self.retry_counter += 1
@@ -104,15 +176,29 @@ class MobileKeywords:
         返回当前关键词有效标识；返回当前关键字所有相关词
         """
         # 抓取目标网址
-        self.browser.get(self.url)
+        tip_msg = "打开百度首页超时"
+        if self.request_url(self.url, tip_msg) is None:
+            print(u'=== %s 打开百度首页超时，继续下一个关键词!' % self.keywords)
+            return self.res_keywords
 
         # 等待搜索框和搜索按钮加载完成
-        txt_search = self.ele_waiting("#index-kw", "css", "located", True)
-        btn_search = self.ele_waiting("#index-bn", "css", "click", True)
-
-        # 发送关键词，等待搜索结果
-        txt_search.send_keys(self.keywords)
-        btn_search.click()
+        try:
+            txt_search = self.wait.until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "#index-kw")))
+            btn_search = self.wait.until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "#index-bn")))
+            # 发送关键词，等待搜索结果
+            txt_search.send_keys(self.keywords)
+            #btn_search.click()
+            #直接执行click无效，使用js脚本执行click
+            self.browser.execute_script("arguments[0].click();", btn_search)
+        except TimeoutException as ex:
+            if self.retry_counter <= 1:
+                self.is_valid_keywords()
+                print(u"===页面超时，重新拉取输入框和搜索按钮。。。" + str(ex))
+            else:
+                print(u"=== %s 页面超时，放弃当前关键词，继续下一个！" % self.keywords)
+                return self.res_keywords
 
         # 判断搜索结果是否为空
         page_result = self.ele_exist(".se-noresult-tips", "css", True)
@@ -131,10 +217,9 @@ class MobileKeywords:
         str_xpath = "/html/body/div[3]/div[2]/div[2]/div"
         res_search = self.ele_exist(str_xpath, "xpath", False)
         if res_search is not None:
-            #str_xpath = "//div[1]/article/header/div/a/h3"
             for title in res_search:
-                if u"其他人还在搜" in title.text: # 其他人还在搜 相关词
-                    kw_others = title.text.split("\n")
+                if u"其他人还在搜" in title.text:  # 其他人还在搜 相关词
+                    kw_others = title.text.replace("其他人还在搜", "").split("\n")
                     for v in kw_others:
                         self.res_keywords['sub_keywords'].append(v.strip())
                     continue
@@ -147,9 +232,11 @@ class MobileKeywords:
         str_xpath = "/html/body/div[3]/div[2]/div[4]/div/a"
         paging_url = self.ele_exist(str_xpath, "xpath", True)
         if paging_url is not None:
-            paging_url = paging_url.get_attribute("href").replace(
-                "pn=10", "pn=90")
-            self.browser.get(paging_url)
+            paging_url = paging_url.get_attribute("href").replace("pn=10", "pn=90")
+            tip_msg = "拉取关键词翻页信息超时"
+            if self.request_url(paging_url, tip_msg) is None: # 拉取关键词翻页信息
+                print(u"=== %s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
+                return self.res_keywords
             str_xpath = "/html/body/div[3]/div[2]/div[4]/div/div[2]/span"
             res_page = self.ele_waiting(str_xpath, "xpath", True, False)
             if res_page is not None:
@@ -160,18 +247,87 @@ class MobileKeywords:
         if self.title_counter <= 0 and self.page_keywords >= 10:
             self.res_keywords["valid"] = True
 
+        print(u"== {} 获取完毕，共有相关词 {} 个。首页出现次数 {}。总页数 {}。是否为过滤词 {}。".format(
+            self.keywords, len(self.res_keywords["sub_keywords"]),
+            str(5 - self.title_counter), self.page_keywords,
+            self.res_keywords["valid"]))
+
         return self.res_keywords
+
+    def searching(self):
+        """
+        关键词搜索，以广度为优先（bfs）
+        """
+        queue = []
+        queue_seen = set()  # 保存已处理过的关键词
+        sql_datas = []  # 插入数据库所需参数
+        file_datas = [] # 插入文件所需数据
+        queue.append(self.keywords)
+        len_queue = len(queue)
+
+        while len_queue > 0:
+            is_past_keywords = False  # 是否存在过滤词
+            is_includ_keywords = False  # 是否包含指定词
+            self.keywords = queue.pop(0) # 取出第一个关键词
+            
+            # 关键词存在过滤词不做处理
+            for past_kw in self.filter_keywords:
+                if past_kw in self.keywords:
+                    is_past_keywords = True
+                    break
+            # 关键词不包含指定词不做处理
+            for inl_kw in self.include_keywords:
+                if inl_kw in self.keywords:
+                    is_includ_keywords = True
+                    break
+            # 重复关键词，或者存在过滤词的关键词不做处理
+            if (self.keywords in queue_seen or is_past_keywords
+                    or not is_includ_keywords):
+                len_queue = len(queue) # 重新计算队列长度，避免无效的循环
+                continue
+            # 判断当前关键词状态，并获取相关词
+            r_keywords = self.is_valid_keywords()
+            # 重置所有状态值，为下个关键词作准备
+            self.status_rest()
+            # 添加关键词到待处理队列
+            for kw in r_keywords["sub_keywords"]:
+                if kw.strip() != "":
+                    queue.append(kw)
+            # 重新计算队列长度
+            len_queue = len(queue)
+            # 保存有效关键词
+            if r_keywords["valid"]:
+                queue_seen.add(self.keywords)  # 保存有效关键词
+                if self.keywords != "":
+                    self.total_keywords += 1
+                    #sql_datas.append((None, self.keywords))
+                    file_datas.append(self.keywords)
+                # 写入文件 2 个词一写，数据库暂时不考虑
+                if self.total_keywords % 2 == 0:
+                    self.write_file(file_datas)
+        # 将剩余关键词写入文件
+        self.write_file(file_datas)
 
 
 if __name__ == "__main__":
     seconds = 10
     url = "https://m.baidu.com/"
     keywords = "明晚开什么生肖"
+    f_keywords = ['李居明', '麦玲玲', '董易奇', '宋韶光', '苏民峰', '熊神进', '徐墨斋',
+                  '董易林']  # 过滤词不能出现在关键词中
+    i_keywords = ['生肖']  # 指定词必须出现在关键词中
 
-    # 提示初始化方法，每次循环后不用重新声明对象，调用对象的初始化方法即可。（清空对应的标识和值即可）
+    print(u"====================================")
+    # print(u"==初始化数据库")
+    # sqlhelper = dbHelper()
+    # print(u"==数据库初始完毕")
 
-    mk = MobileKeywords(url, keywords, seconds)
-    mk.browser.get(mk.url)
-    # print(mk.browser.page_source)
-    mk.is_valid_keywords()
+    mk = MobileKeywords(url, keywords, seconds, f_keywords, i_keywords)
+    mk.browser.set_page_load_timeout(seconds)  # 页面超时时间为10S
+    # mk.dbHelper = sqlhelper
+    mk.init_save_info()
+    print(u"==开始采集关键词 %s" % keywords)
+    mk.searching()
     mk.browser.quit()
+    print(u"==关键词采集结束")
+    print(u"====================================")
