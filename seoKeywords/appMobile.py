@@ -70,6 +70,8 @@ class MobileKeywords:
         opt.add_argument("blink-settings=imagesEnabled=false")  # 禁止加载图片
         opt.add_argument('--headless')  # 无界面模式
         opt.add_argument('--disable-gpu')  # 禁止使用硬件加速
+        opt.add_argument('--no-sandbox') # 针对selenium在centos7 server中的配置
+        opt.add_argument('--disable-dev-shm-usage') # 针对selenium在centos7 server中的配置
         opt.add_argument(
             "user-agent='Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0'"
         )  # 自定义请求头
