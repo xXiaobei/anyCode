@@ -1,4 +1,7 @@
+#encoding:utf-8
+
 import re
+import sys
 from urllib.parse import urlparse, urljoin
 from os.path import basename, dirname, join
 from tldextract import extract
@@ -136,7 +139,9 @@ if __name__ == "__main__":
     # print(t.split(" "))
     # print(True)
     # print(10000 % 10000)
-    print(u"{}.txt".format("测试中文字符"))
-    t = ["a",'b','c']
-    a = "\n".join(str(s) for s in t)
-    print(a)
+    # print(u"{}.txt".format("测试中文字符"))
+    # t = ["a",'b','c']
+    # a = "\n".join(str(s) for s in t)
+    # print(a)
+    # print(sys.argv[0], sys.argv[1], sys.argv[2])
+    
