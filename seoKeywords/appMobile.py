@@ -1,3 +1,5 @@
+#encoding:utf-8
+
 """
 #百度m端挖词工具
 #无效关键词判断标准：
@@ -5,7 +7,7 @@
 # 2：搜索结果没有10页，且第一页搜索结果没有包含5条关键词收录
 """
 
-import os
+import os, sys
 from selenium import webdriver
 from selenium.webdriver import ChromeOptions
 from selenium.common.exceptions import TimeoutException
@@ -34,7 +36,7 @@ class MobileKeywords:
         self.title_counter = 5  # 关键词在搜索结果中出现的次数
         self.page_keywords = 0  # 关键词搜索结果总页
         self.total_keywords = 0  # 总关键词记数
-        self.file_save_path = "" # 关键词文件保存路径
+        self.file_save_path = ""  # 关键词文件保存路径
         self.filter_keywords = f_kw  # 过滤的关键词（关键词不得出现该列表中的任何词）
         self.include_keywords = i_kw  # 包含关键词（关键词中必须包含该列表中的任何一个词）
         self.res_keywords = {"valid": False, "sub_keywords": []}
@@ -49,7 +51,8 @@ class MobileKeywords:
             file_path = '/home/bbei/Documents/baiduci/'
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
-            file_name = os.path.join(file_path, u"{}.txt".format(self.keywords))
+            file_name = os.path.join(file_path,
+                                     u"{}.txt".format(self.keywords))
             self.file_save_path = file_name
             print(u"-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-")
             print(u"==关键词保存路径为：{}".format(self.file_save_path))
@@ -70,8 +73,9 @@ class MobileKeywords:
         opt.add_argument("blink-settings=imagesEnabled=false")  # 禁止加载图片
         opt.add_argument('--headless')  # 无界面模式
         opt.add_argument('--disable-gpu')  # 禁止使用硬件加速
-        opt.add_argument('--no-sandbox') # 针对selenium在centos7 server中的配置
-        opt.add_argument('--disable-dev-shm-usage') # 针对selenium在centos7 server中的配置
+        opt.add_argument('--no-sandbox')  # 针对selenium在centos7 server中的配置
+        opt.add_argument(
+            '--disable-dev-shm-usage')  # 针对selenium在centos7 server中的配置
         opt.add_argument(
             "user-agent='Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0'"
         )  # 自定义请求头
@@ -106,21 +110,22 @@ class MobileKeywords:
             return True
         except TimeoutException as ex:
             if self.retry_counter <= 1:
-                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg, self.retry_counter))
+                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg,
+                                                       self.retry_counter))
                 self.retry_counter += 1
                 self.request_url(req_url, tipMsg)
             else:
                 self.retry_counter = 1
                 return None
 
-    def write_file(self,kw_data):
+    def write_file(self, kw_data):
         """
         将关键词写入文件
         """
         with open(self.file_save_path, 'a+') as f:
             s = "\n".join(s for s in kw_data)
             f.write(s)
-        kw_data.clear() # 清空，为下次准备
+        kw_data.clear()  # 清空，为下次准备
 
     def ele_waiting(self, selector, selector_type, wait_type, retry):
         """
@@ -236,7 +241,7 @@ class MobileKeywords:
         if paging_url is not None:
             paging_url = paging_url.get_attribute("href").replace("pn=10", "pn=90")
             tip_msg = "拉取关键词翻页信息超时"
-            if self.request_url(paging_url, tip_msg) is None: # 拉取关键词翻页信息
+            if self.request_url(paging_url, tip_msg) is None:  # 拉取关键词翻页信息
                 print(u"=== %s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
                 return self.res_keywords
             str_xpath = "/html/body/div[3]/div[2]/div[4]/div/div[2]/span"
@@ -249,11 +254,6 @@ class MobileKeywords:
         if self.title_counter <= 0 and self.page_keywords >= 10:
             self.res_keywords["valid"] = True
 
-        print(u"== {} 获取完毕，共有相关词 {} 个。首页出现次数 {}。总页数 {}。是否为过滤词 {}。".format(
-            self.keywords, len(self.res_keywords["sub_keywords"]),
-            str(5 - self.title_counter), self.page_keywords,
-            self.res_keywords["valid"]))
-
         return self.res_keywords
 
     def searching(self):
@@ -263,15 +263,16 @@ class MobileKeywords:
         queue = []
         queue_seen = set()  # 保存已处理过的关键词
         sql_datas = []  # 插入数据库所需参数
-        file_datas = [] # 插入文件所需数据
+        file_datas = []  # 插入文件所需数据
         queue.append(self.keywords)
+        queue_seen.add(self.keywords)
         len_queue = len(queue)
 
         while len_queue > 0:
             is_past_keywords = False  # 是否存在过滤词
             is_includ_keywords = False  # 是否包含指定词
-            self.keywords = queue.pop(0) # 取出第一个关键词
-            
+            self.keywords = queue.pop(0)  # 取出第一个关键词
+
             # 关键词存在过滤词不做处理
             for past_kw in self.filter_keywords:
                 if past_kw in self.keywords:
@@ -283,23 +284,22 @@ class MobileKeywords:
                     is_includ_keywords = True
                     break
             # 重复关键词，或者存在过滤词的关键词不做处理
-            if (self.keywords in queue_seen or is_past_keywords
-                    or not is_includ_keywords):
-                len_queue = len(queue) # 重新计算队列长度，避免无效的循环
+            if is_past_keywords or not is_includ_keywords:
+                len_queue = len(queue)  # 重新计算队列长度，避免无效的循环
                 continue
             # 判断当前关键词状态，并获取相关词
             r_keywords = self.is_valid_keywords()
-            # 重置所有状态值，为下个关键词作准备
-            self.status_rest()
             # 添加关键词到待处理队列
             for kw in r_keywords["sub_keywords"]:
-                if kw.strip() != "":
+                if kw.strip() != "" and kw not in queue_seen:
                     queue.append(kw)
+                    queue_seen.add(kw)
             # 重新计算队列长度
             len_queue = len(queue)
+            # 打印提示信息，方便跟踪进度
+            self.print_tips(self.total_keywords, len_queue)
             # 保存有效关键词
             if r_keywords["valid"]:
-                queue_seen.add(self.keywords)  # 保存有效关键词
                 if self.keywords != "":
                     self.total_keywords += 1
                     #sql_datas.append((None, self.keywords))
@@ -307,8 +307,22 @@ class MobileKeywords:
                 # 写入文件 2 个词一写，数据库暂时不考虑
                 if self.total_keywords % 2 == 0:
                     self.write_file(file_datas)
+            # 重置所有状态值，为下个关键词作准备
+            self.status_rest()
         # 将剩余关键词写入文件
         self.write_file(file_datas)
+
+    def print_tips(self, c_index, t_index):
+        """
+        打印提示消息
+        """
+        is_valid_kw = "有效词"
+        if not self.res_keywords["valid"]:
+            is_valid_kw = "无效词"
+        print(u"== ({} / {}) {}，共有相关词:{} 个,首页出现:{}次，页数为：{}，结果是：{}。".format(
+            c_index, t_index, self.keywords,
+            len(self.res_keywords["sub_keywords"]),
+            str(5 - self.title_counter), self.page_keywords, is_valid_kw))
 
 
 if __name__ == "__main__":
@@ -318,6 +332,23 @@ if __name__ == "__main__":
     f_keywords = ['李居明', '麦玲玲', '董易奇', '宋韶光', '苏民峰', '熊神进', '徐墨斋',
                   '董易林']  # 过滤词不能出现在关键词中
     i_keywords = ['生肖']  # 指定词必须出现在关键词中
+
+    f_keywords, i_keywords = [], []
+    keywords = sys.argv[1]
+    if keywords.strip() == "":
+        print(u"主关键词不能为空,请重试...")
+        os._exit(0)
+    if sys.argv[2].strip() != "":
+        if "," in sys.argv[2]:
+            f_keywords = sys.argv[2].split(",")
+        else:
+            f_keywords = sys.argv[2]
+    if sys.argv[3].strip() != "":
+        if "," in sys.argv[3]:
+            i_keywords = sys.argv[3].split(",")
+        else:
+            i_keywords = sys.argv[3].strip()
+
 
     print(u"====================================")
     # print(u"==初始化数据库")
