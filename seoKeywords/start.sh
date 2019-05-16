@@ -36,6 +36,13 @@ done
 read -p "请输入过滤词（短语）：" filter_keywords
 read -p "请输入包含词（短语）：" includ_keywords
 
+if [ "$filter_keywords" = "" ];then
+    filter_keywords="_fKw_"
+fi
+if [ "$includ_keywords" = "" ];then
+    includ_keywords="_iKw_"
+fi
+
 #echo ${main_keywords}" "${filter_keywords}" "${includ_keywords}
 
 python appMobile.py ${main_keywords} ${filter_keywords} ${includ_keywords}
