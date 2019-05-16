@@ -200,6 +200,7 @@ class MobileKeywords:
             self.browser.execute_script("arguments[0].click();", btn_search)
         except:
             print(u"=== 页面元素拉取超时，放弃 %s，继续下一个！" % self.keywords)
+            self.restart_driver() # 元素发生超时后，重启driver
             return self.res_keywords
 
         # 判断搜索结果是否为空

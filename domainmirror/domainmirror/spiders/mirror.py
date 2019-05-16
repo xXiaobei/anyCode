@@ -46,11 +46,11 @@ class MirrorSpider(Spider):
         if page.isIndexPage:
             url = str.format("{}/index.html", url)
 
-        file_root_path = join(self.file_save_root, page.rootPath)
-        save_file(page.content, url, file_root_path)
+        # file_root_path = join(self.file_save_root, page.rootPath)
+        # save_file(page.content, url, file_root_path)
 
-        for inner_page_url in page.urls:
-            yield Request(inner_page_url, callback=self.parse_inner)
+        # for inner_page_url in page.urls:
+        #     yield Request(inner_page_url, callback=self.parse_inner)
 
     def parse_inner(self, response):
         """
