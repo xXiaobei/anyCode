@@ -94,22 +94,26 @@ class MobileKeywords:
         """
         当超时发生后，清理当前游览器，重新赋值
         """
-        self.wait = None
-        self.browser.quit()
-        self.browser = webdriver.Chrome(self.init_driver())
-        self.wait = WebDriverWait(self.browser, self.seconds)
+        try:
+            self.wait = None
+            self.browser.quit()
+            self.browser = webdriver.Chrome(self.init_driver())
+            self.wait = WebDriverWait(self.browser, self.seconds)
+        except:
+            print(u"===webdriver重启出错，即将重试...")
+            self.restart_driver()
 
     def request_url(self, req_url, tipMsg):
         """
         请求给定的网站，超时进行默认次数的重试，成功则返回页面，反之返回None
         """
-        try:            
+        try:
             self.browser.get(req_url)
             return True
         except TimeoutException as ex:
             if self.retry_counter <= 1:
                 self.browser.quit() # 清空driver所占有的所有资源
-                self.restart_driver() # 重启driver
+                self.restart_driver() # 重启driver 在一个异常中不能引发另外一个异常
                 print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg, self.retry_counter))
                 self.retry_counter += 1
                 self.request_url(req_url, tipMsg)

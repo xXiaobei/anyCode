@@ -6,8 +6,8 @@ import codecs  # 解决文件写入时编码问题
 from time import time
 from os import makedirs
 from os.path import basename, dirname, join, exists
-from tldextract import extract  # 解析域名的二级域名
 from urllib.parse import urlparse, urljoin
+from tldextract import extract  # 解析域名的二级域名
 
 
 class Page:
@@ -20,8 +20,8 @@ class Page:
     isIndexPage = False
     # 站点更目录
     rootPath = ""
-    # category 为一个set访问器 记录当前网站所有栏目
-    category = set()
+    # category 为一个set访问器 记录当前网站所有栏目(以首页为基准)
+    category = []
     # 每个栏目的page总数
     category_pages = 0
     # urls 为列表，记录当前页面所有有效的href
@@ -137,7 +137,39 @@ def parse_html_url(response, page):
                     url_schema.path + str(timespan) + ".html"
                 })
 
+        # 如果当前页面是首页，则构建改网站的物理架构
+        if page.isIndexPage:
+            category_dict = {"cat_name": "", "cat_index": 0}
+            if "/" in url_schema.path:
+                cat_schema = url_schema.path.split("/")
+                cat_deep_num = len(cat_schema)
+                if cat_deep_num > 1:
+                    category_dict["cat_name"] = cat_schema[1]
+                    category_dict["cat_index"] = 1
+                
+                # 添加每个链接的根目录到集合
+                if len(page.category) == 0:
+                    page.category.append(category_dict)
+                else:
+                    for cat_dic in page.category:
+                        if category_dict["cat_name"] not in cat_dic["cat_name"]:
+                            page.category.append(category_dict)
+                            break # 添加完后，退出循环，避免无效操作
+                
+                # 判断当前目录是否为最终目录
+                if cat_deep_num > 3:
+                    #目录的最小结构为3级（根目录、本身、页面）
+                    #发现当前目录较已存在的目录的层次要深则替换调当前目录
+                    #循环构造目录(用较长的路径替换当前路径中较短的路径，直至当前目录最终路径)
+                    cur_deep_num = cat_deep_num - 1
+                    cur_category = url_schema.path.substring(0, url_schema.path.rindex("/"))
+                    for cd in category_dict:
+                        if cd["cat_name"] in cur_category and cd["cat_index"] < cur_deep_num:
+                            cd["cat_name"] = cur_category
+                            cd["cat_index"] = int(cur_deep_num)
+
         page.urls.append(href)
+
         # page.category.add(dirname(url_schema.path))
 
     page.content = response.text
