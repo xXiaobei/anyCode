@@ -10,7 +10,7 @@
 import os, sys
 from selenium import webdriver
 from selenium.webdriver import ChromeOptions
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -94,14 +94,11 @@ class MobileKeywords:
         """
         当超时发生后，清理当前游览器，重新赋值
         """
-        try:
-            self.wait = None
-            self.browser.quit()
-            self.browser = webdriver.Chrome(self.init_driver())
-            self.wait = WebDriverWait(self.browser, self.seconds)
-        except:
-            print(u"===webdriver重启出错，即将重试...")
-            self.restart_driver()
+        self.wait = None
+        self.browser.quit()
+        self.browser = webdriver.Chrome(chrome_options=self.init_driver())
+        self.wait = WebDriverWait(self.browser, self.seconds)
+        self.restart_driver()
 
     def request_url(self, req_url, tipMsg):
         """
@@ -202,9 +199,9 @@ class MobileKeywords:
             #btn_search.click()
             #直接执行click无效，使用js脚本执行click
             self.browser.execute_script("arguments[0].click();", btn_search)
-        except:
+        except WebDriverException as ex:
             print(u"=== 页面元素拉取超时，放弃 %s，继续下一个！" % self.keywords)
-            self.restart_driver() # 元素发生超时后，重启driver
+            #self.restart_driver() # 元素发生超时后，重启driver
             return self.res_keywords
 
         # 判断搜索结果是否为空
