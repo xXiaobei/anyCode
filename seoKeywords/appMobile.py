@@ -48,15 +48,15 @@ class MobileKeywords:
         初始化关键词保存相关
         """
         try:
-            file_path = '/home/bbei/Documents/baiduci/'
+            file_path = '/home/documents/seobaidu/baiduci/'
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
             file_name = os.path.join(file_path,
                                      u"{}.txt".format(self.keywords))
             self.file_save_path = file_name
-            print(u"-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-")
+            print(u"-----------------------------------------------------")
             print(u"==关键词保存路径为：{}".format(self.file_save_path))
-            print(u"-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-")
+            print(u"-----------------------------------------------------")
         except:
             print(u"===关键词结果保存文件创建出错，请重试...")
             os._exit(0)
@@ -103,15 +103,14 @@ class MobileKeywords:
         """
         请求给定的网站，超时进行默认次数的重试，成功则返回页面，反之返回None
         """
-        try:
-            if self.retry_counter > 1:
-                self.restart_driver()
+        try:            
             self.browser.get(req_url)
             return True
         except TimeoutException as ex:
             if self.retry_counter <= 1:
-                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg,
-                                                       self.retry_counter))
+                self.browser.quit() # 清空driver所占有的所有资源
+                self.restart_driver() # 重启driver
+                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg, self.retry_counter))
                 self.retry_counter += 1
                 self.request_url(req_url, tipMsg)
             else:
@@ -199,13 +198,9 @@ class MobileKeywords:
             #btn_search.click()
             #直接执行click无效，使用js脚本执行click
             self.browser.execute_script("arguments[0].click();", btn_search)
-        except TimeoutException as ex:
-            if self.retry_counter <= 1:
-                self.is_valid_keywords()
-                print(u"===页面超时，重新拉取输入框和搜索按钮。。。" + str(ex))
-            else:
-                print(u"=== %s 页面超时，放弃当前关键词，继续下一个！" % self.keywords)
-                return self.res_keywords
+        except:
+            print(u"=== 页面元素拉取超时，放弃 %s，继续下一个！" % self.keywords)
+            return self.res_keywords
 
         # 判断搜索结果是否为空
         page_result = self.ele_exist(".se-noresult-tips", "css", True)
@@ -316,9 +311,9 @@ class MobileKeywords:
         """
         打印提示消息
         """
-        is_valid_kw = "有效词"
+        is_valid_kw = u"有效词"
         if not self.res_keywords["valid"]:
-            is_valid_kw = "无效词"
+            is_valid_kw = u"无效词"
         print(u"== ({} / {}) {}，共有相关词:{} 个,首页出现:{}次，页数为：{}，结果是：{}。".format(
             c_index, t_index, self.keywords,
             len(self.res_keywords["sub_keywords"]),
@@ -328,22 +323,19 @@ class MobileKeywords:
 if __name__ == "__main__":
     seconds = 10
     url = "https://m.baidu.com/"
-    keywords = "明晚开什么生肖"
-    f_keywords = ['李居明', '麦玲玲', '董易奇', '宋韶光', '苏民峰', '熊神进', '徐墨斋',
-                  '董易林']  # 过滤词不能出现在关键词中
-    i_keywords = ['生肖']  # 指定词必须出现在关键词中
 
+    #keywords,f_keywords,i_keywords 由.sh提供参数
     f_keywords, i_keywords = [], []
     keywords = sys.argv[1]
     if keywords.strip() == "":
         print(u"主关键词不能为空,请重试...")
         os._exit(0)
-    if sys.argv[2].strip() != "":
+    if sys.argv[2].strip() != "_fkw_":
         if "," in sys.argv[2]:
             f_keywords = sys.argv[2].split(",")
         else:
             f_keywords = sys.argv[2]
-    if sys.argv[3].strip() != "":
+    if sys.argv[3].strip() != "_iKw_":
         if "," in sys.argv[3]:
             i_keywords = sys.argv[3].split(",")
         else:
