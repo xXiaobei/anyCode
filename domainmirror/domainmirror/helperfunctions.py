@@ -8,6 +8,7 @@ from os import makedirs
 from os.path import basename, dirname, join, exists
 from urllib.parse import urlparse, urljoin
 from tldextract import extract  # 解析域名的二级域名
+from collections import defaultdict # 用于构造树形结构数据
 
 
 class Page:
@@ -36,6 +37,11 @@ class Page:
         self.description = desc
         self.content = content
 
+def tree():
+    """
+    定义树 (一颗树就是一个默认值是其子树的字典)
+    """
+    return defaultdict()
 
 def save_file(content, url, fileroot):
     """
@@ -144,32 +150,37 @@ def parse_html_url(response, page):
                 cat_schema = url_schema.path.split("/")
                 cat_deep_num = len(cat_schema)
                 if cat_deep_num > 1:
-                    category_dict["cat_name"] = cat_schema[1]
                     category_dict["cat_index"] = 1
-                
+                    category_dict["cat_name"] = join("/", cat_schema[1] + "/")
+
                 # 添加每个链接的根目录到集合
                 if len(page.category) == 0:
                     page.category.append(category_dict)
                 else:
                     for cat_dic in page.category:
-                        if category_dict["cat_name"] not in cat_dic["cat_name"]:
-                            page.category.append(category_dict)
-                            break # 添加完后，退出循环，避免无效操作
-                
+                        never_seen = True
+                        if category_dict["cat_name"] in cat_dic["cat_name"]:
+                            never_seen = False
+                            break
+                    if never_seen:
+                        page.category.append(category_dict)
+
                 # 判断当前目录是否为最终目录
                 if cat_deep_num > 3:
                     #目录的最小结构为3级（根目录、本身、页面）
                     #发现当前目录较已存在的目录的层次要深则替换调当前目录
                     #循环构造目录(用较长的路径替换当前路径中较短的路径，直至当前目录最终路径)
+                    c_path = url_schema.path
                     cur_deep_num = cat_deep_num - 1
-                    cur_category = url_schema.path.substring(0, url_schema.path.rindex("/"))
-                    for cd in category_dict:
-                        if cd["cat_name"] in cur_category and cd["cat_index"] < cur_deep_num:
+                    cur_category = c_path[0:c_path.rindex("/") + 1]
+                    for cd in page.category:
+                        if cd["cat_name"] in cur_category and cd[
+                                "cat_index"] < cur_deep_num:
                             cd["cat_name"] = cur_category
                             cd["cat_index"] = int(cur_deep_num)
 
         page.urls.append(href)
 
-        # page.category.add(dirname(url_schema.path))
-
     page.content = response.text
+    for c in page.category:
+        print(c["cat_name"])

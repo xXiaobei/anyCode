@@ -1,5 +1,4 @@
 #encoding:utf-8
-
 """
 #百度m端挖词工具
 #无效关键词判断标准：
@@ -51,8 +50,7 @@ class MobileKeywords:
             file_path = '/home/documents/seobaidu/baiduci/'
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
-            file_name = os.path.join(file_path,
-                                     u"{}.txt".format(self.keywords))
+            file_name = os.path.join(file_path, u"{}.txt".format(self.keywords))
             self.file_save_path = file_name
             print(u"-----------------------------------------------------")
             print(u"==关键词保存路径为：{}".format(self.file_save_path))
@@ -67,8 +65,11 @@ class MobileKeywords:
         """
         opt = ChromeOptions()
         prefs = {
-            "profile.managed_default_content_settings.images": 2
-        }  # 禁止加载图片
+            'profile.default_content_setting_values': {
+                'images': 2 # 禁止加载图片 1为开启
+                #'javascript': 2 # 禁止运行js 1为开启
+            }
+        }  
         opt.add_experimental_option("prefs", prefs)
         opt.add_argument("blink-settings=imagesEnabled=false")  # 禁止加载图片
         opt.add_argument('--headless')  # 无界面模式
@@ -105,16 +106,17 @@ class MobileKeywords:
         请求给定的网站，超时进行默认次数的重试，成功则返回页面，反之返回None
         """
         try:
+            if self.retry_counter > 1:
+                new_win = "window.open('https://www.baidu.com');"
+                self.browser.execute_script(new_win)  #打开新的选项卡
+                for win in self.browser.window_handles:
+                    if self.browser.current_window_handle != win:
+                        self.browser.close()  # 关闭当前选项卡
+                        self.browser.switch_to.window(win)
             self.browser.get(req_url)
             return True
         except TimeoutException as ex:
             if self.retry_counter <= 1:
-                new_win = "window.open('https://www.baidu.com');"
-                self.browser.execute_script(new_win) #打开新的选项卡
-                for win in self.browser.window_handles:
-                    if self.browser.current_window_handle != win:
-                        self.browser.close() # 关闭当前选项卡
-                        self.browser.switch_to.window(win)
                 print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg, self.retry_counter))
                 self.retry_counter += 1
                 self.request_url(req_url, tipMsg)
@@ -240,7 +242,8 @@ class MobileKeywords:
         str_xpath = "/html/body/div[3]/div[2]/div[4]/div/a"
         paging_url = self.ele_exist(str_xpath, "xpath", True)
         if paging_url is not None:
-            paging_url = paging_url.get_attribute("href").replace("pn=10", "pn=90")
+            paging_url = paging_url.get_attribute("href").replace(
+                "pn=10", "pn=90")
             tip_msg = "拉取关键词翻页信息超时"
             if self.request_url(paging_url, tip_msg) is None:  # 拉取关键词翻页信息
                 print(u"=== %s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
@@ -346,7 +349,6 @@ if __name__ == "__main__":
             i_keywords = sys.argv[3].split(",")
         else:
             i_keywords = sys.argv[3].strip()
-
 
     print(u"====================================")
     # print(u"==初始化数据库")
