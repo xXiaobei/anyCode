@@ -109,8 +109,12 @@ class MobileKeywords:
             return True
         except TimeoutException as ex:
             if self.retry_counter <= 1:
-                self.browser.quit() # 清空driver所占有的所有资源
-                self.restart_driver() # 重启driver 在一个异常中不能引发另外一个异常
+                new_win = "window.open('https://www.baidu.com');"
+                self.browser.execute_script(new_win) #打开新的选项卡
+                for win in self.browser.window_handles:
+                    if self.browser.current_window_handle != win:
+                        self.browser.close() # 关闭当前选项卡
+                        self.browser.switch_to.window(win)
                 print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg, self.retry_counter))
                 self.retry_counter += 1
                 self.request_url(req_url, tipMsg)
@@ -293,8 +297,6 @@ class MobileKeywords:
                     queue_seen.add(kw)
             # 重新计算队列长度
             len_queue = len(queue)
-            # 打印提示信息，方便跟踪进度
-            self.print_tips(self.total_keywords, len_queue)
             # 保存有效关键词
             if r_keywords["valid"]:
                 if self.keywords != "":
@@ -304,6 +306,8 @@ class MobileKeywords:
                 # 写入文件 2 个词一写，数据库暂时不考虑
                 if self.total_keywords % 2 == 0:
                     self.write_file(file_datas)
+            # 打印提示信息，方便跟踪进度
+            self.print_tips(self.total_keywords, len_queue)
             # 重置所有状态值，为下个关键词作准备
             self.status_rest()
         # 将剩余关键词写入文件
@@ -316,7 +320,7 @@ class MobileKeywords:
         is_valid_kw = u"有效词"
         if not self.res_keywords["valid"]:
             is_valid_kw = u"无效词"
-        print(u"== ({} / {}) {}，共有相关词:{} 个,首页出现:{}次，页数为：{}，结果是：{}。".format(
+        print(u"== ({} / {}) {}，相关词:{} 个,首页出现:{}次，页数为：{}，结果是：{}。".format(
             c_index, t_index, self.keywords,
             len(self.res_keywords["sub_keywords"]),
             str(5 - self.title_counter), self.page_keywords, is_valid_kw))
