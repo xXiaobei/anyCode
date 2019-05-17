@@ -26,16 +26,21 @@ if __name__ == "__main__":
     b.set_page_load_timeout(10)
     w = WebDriverWait(b, 10)
     b.get('http://m.baidu.com')
-    print(b.page_source)
+    #print(b.page_source)
+    # b.switch_to_window
+    print(b.session_id)
+    b.quit()
+    time.sleep(3)
 
+    b = webdriver.Chrome(chrome_options=opt)
+    # b.execute_script("window.open('https://www.baidu.com')")
+    b.get('https://www.baidu.com')
+    print(b.session_id)
+    # for win in b.window_handles:
+    #     if win != b.current_window_handle:
+    #         b.close()
+    #         b.switch_to.window(win)
+    #b.get('http://m.baidu.com')
+    #print(b.page_source)
     time.sleep(5)
-
-    b.execute_script("window.open('https://www.baidu.com')")
-    for win in b.window_handles:
-        if win != b.current_window_handle:
-            b.close()
-            b.switch_to.window(win)
-    b.get('http://m.baidu.com')
-    print(b.page_source)
-
     b.quit()

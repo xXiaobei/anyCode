@@ -8,7 +8,7 @@
 
 import os, sys
 from selenium import webdriver
-from selenium.webdriver import ChromeOptions
+from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -63,13 +63,13 @@ class MobileKeywords:
         """
         webdriver 配置项
         """
-        opt = ChromeOptions()
+        opt = Options()
         prefs = {
             'profile.default_content_setting_values': {
                 'images': 2 # 禁止加载图片 1为开启
                 #'javascript': 2 # 禁止运行js 1为开启
             }
-        }  
+        }
         opt.add_experimental_option("prefs", prefs)
         opt.add_argument("blink-settings=imagesEnabled=false")  # 禁止加载图片
         opt.add_argument('--headless')  # 无界面模式
@@ -107,17 +107,15 @@ class MobileKeywords:
         """
         try:
             if self.retry_counter > 1:
-                new_win = "window.open('https://www.baidu.com');"
-                self.browser.execute_script(new_win)  #打开新的选项卡
-                for win in self.browser.window_handles:
-                    if self.browser.current_window_handle != win:
-                        self.browser.close()  # 关闭当前选项卡
-                        self.browser.switch_to.window(win)
+                self.browser.quit()
+                self.browser = webdriver.Chrome(chrome_options=self.init_driver())
+                self.wait = WebDriverWait(self.browser, self.seconds)
+                print('.............擦 ，重启成功了，还是不幸？？？？？')
             self.browser.get(req_url)
             return True
         except TimeoutException as ex:
             if self.retry_counter <= 1:
-                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg, self.retry_counter))
+                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg + str(ex), self.retry_counter))
                 self.retry_counter += 1
                 self.request_url(req_url, tipMsg)
             else:

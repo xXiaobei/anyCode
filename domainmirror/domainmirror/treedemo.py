@@ -6,20 +6,22 @@ def tree():
     return defaultdict()
 
 
+class cus_tree:
+    """
+    树节点
+    """
+
+    def __init__(self, _name, _children):
+        self.name = _name
+        self.children = _children
+
+
 if __name__ == "__main__":
-    category = {}
-    category["guoneixinwen"] = ""
-    category["guojixinwen"] = ""
-    category["shehuixinwen"] = ""
-
-    category["guoneixinwen"] = {"hunan": "", "jiangxi": ""}
-    category["guojixinwen"] = {"meiguo": "", "jianada": "", "yinguo": ""}
-
-    #print(category)
-
-    cat = ["guoneixinwen", "guojixinwen", "shehuixinwen"]
+    category = []
+    category.append(cus_tree("baidu.com", []))
     
-    cat[0].append(["hunan", "jiangxi"])
-    cat[1] = ["meiguo", "yingguo", "deguo"]
+    category[0].children.append(cus_tree("guoneixinwen",[]))
+    category[0].children.append(cus_tree("guojixinwen",[]))
+    category[0].children.append(cus_tree("shehuixinwen",[]))
 
-    print(cat)
+    print(category[0].children)

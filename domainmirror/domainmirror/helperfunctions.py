@@ -8,7 +8,17 @@ from os import makedirs
 from os.path import basename, dirname, join, exists
 from urllib.parse import urlparse, urljoin
 from tldextract import extract  # 解析域名的二级域名
-from collections import defaultdict # 用于构造树形结构数据
+from collections import defaultdict  # 用于构造树形结构数据
+
+
+class cTree:
+    """
+    自定义树节点，用于构造网站的目录结果
+    """
+
+    def __init__(self, _name, _children):
+        self.name = _name
+        self.children = _children
 
 
 class Page:
@@ -37,11 +47,22 @@ class Page:
         self.description = desc
         self.content = content
 
-def tree():
+
+def append_sub_node(listNode, parentNode, nodeName):
     """
-    定义树 (一颗树就是一个默认值是其子树的字典)
+    追加子节点到对应的父节点
     """
-    return defaultdict()
+    is_found = False
+    for node in listNode:
+        if node.name == parentNode:
+            is_found = True
+            node.children.append(cTree(nodeName, []))
+            break
+        if len(node.children) != 0:
+            append_sub_node(node.children, parentNode, nodeName)
+    if not is_found:
+        listNode.append(cTree(nodeName, []))
+
 
 def save_file(content, url, fileroot):
     """
@@ -145,42 +166,35 @@ def parse_html_url(response, page):
 
         # 如果当前页面是首页，则构建改网站的物理架构
         if page.isIndexPage:
-            category_dict = {"cat_name": "", "cat_index": 0}
             if "/" in url_schema.path:
-                cat_schema = url_schema.path.split("/")
-                cat_deep_num = len(cat_schema)
-                if cat_deep_num > 1:
-                    category_dict["cat_index"] = 1
-                    category_dict["cat_name"] = join("/", cat_schema[1] + "/")
-
-                # 添加每个链接的根目录到集合
-                if len(page.category) == 0:
-                    page.category.append(category_dict)
-                else:
-                    for cat_dic in page.category:
-                        never_seen = True
-                        if category_dict["cat_name"] in cat_dic["cat_name"]:
-                            never_seen = False
-                            break
-                    if never_seen:
-                        page.category.append(category_dict)
-
-                # 判断当前目录是否为最终目录
-                if cat_deep_num > 3:
-                    #目录的最小结构为3级（根目录、本身、页面）
-                    #发现当前目录较已存在的目录的层次要深则替换调当前目录
-                    #循环构造目录(用较长的路径替换当前路径中较短的路径，直至当前目录最终路径)
-                    c_path = url_schema.path
-                    cur_deep_num = cat_deep_num - 1
-                    cur_category = c_path[0:c_path.rindex("/") + 1]
-                    for cd in page.category:
-                        if cd["cat_name"] in cur_category and cd[
-                                "cat_index"] < cur_deep_num:
-                            cd["cat_name"] = cur_category
-                            cd["cat_index"] = int(cur_deep_num)
+                is_root, n_name = True, ""
+                c_path = url_schema.path
+                t_schema = c_path.split("/")
+                deep_path = len(t_schema)
+                # 添加当前路径的根路径
+                if deep_path > 1:
+                    n_name = join("/", t_schema[1] + "/")
+                    for node in page.category:
+                        if node.name == n_name:
+                            is_root = False
+                if is_root:
+                    page.category.append(cTree(n_name, []))
+                # 添加当前路径的子节点到父路径
+                if deep_path > 3:
+                    # 0:网站根节点，1：紧接网站根结点的下一节点，所以目录构造从2开始
+                    for i in range(2, deep_path - 1): # 不包含尾节点
+                        have_parent = False
+                        pre_node_name = t_schema[i - 1]  # 当前节点的前一节点
+                        pre_node_name = join("/", pre_node_name + "/")
+                        cur_node_name = join("/", t_schema[i] + "/")
+                        #append_sub_node(page.category, pre_node_name, cur_node_name)  # 存在则添加当前节点到前一节点
+                        for node in page.category:
+                            if node.name == pre_node_name:
+                                have_parent = True
+                                node.children.append(cTree(cur_node_name, []))
+                        if not have_parent:
+                            page.category.append(cTree(cur_node_name, []))
 
         page.urls.append(href)
 
     page.content = response.text
-    for c in page.category:
-        print(c["cat_name"])
