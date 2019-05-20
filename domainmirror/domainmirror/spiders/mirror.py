@@ -2,8 +2,8 @@
 
 from os.path import join
 from scrapy import Request, Spider
-from domainmirror.helperfunctions import parse_html_url, Page, save_file
 from scrapy.utils.project import get_project_settings
+from domainmirror.helperfunctions import parse_html_url, Page, save_file
 
 
 class MirrorSpider(Spider):
@@ -51,6 +51,12 @@ class MirrorSpider(Spider):
 
         # for inner_page_url in page.urls:
         #     yield Request(inner_page_url, callback=self.parse_inner)
+
+    def parse_index_inner(self, response):
+        """
+        抓取首页所有内容，构建完整首页
+        """
+        
 
     def parse_inner(self, response):
         """

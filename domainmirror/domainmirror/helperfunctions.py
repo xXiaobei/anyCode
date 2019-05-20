@@ -16,9 +16,10 @@ class cTree:
     自定义树节点，用于构造网站的目录结果
     """
 
-    def __init__(self, _name, _children):
+    def __init__(self, _name, _children, _pages):
         self.name = _name
         self.children = _children
+        self.pages = _pages
 
 
 class Page:
@@ -48,20 +49,67 @@ class Page:
         self.content = content
 
 
-def append_sub_node(listNode, parentNode, nodeName):
+def node_to_root(rootNode, curNode, deepNode, urlNode):
+    """
+    解析url递归添加到根节点
+    :param rootNode:相对于下个节点的根节点
+    :param deepNode:当前树的深度
+    :param urlNode:当前url的深度
+    """
+    url_deep = len(urlNode)
+    cur_node_deep = len(curNode.children)
+
+    if deepNode < url_deep:
+        is_exsit = False
+        c_parent = cTree("", [], 0)  # 记录下次查找的根节点
+        c_url_node = "/{}/".format(urlNode[deepNode].strip())
+        for i in range(cur_node_deep):
+            if curNode.children[i].name == c_url_node:
+                is_exsit = True
+                break
+        if not is_exsit:
+            c_parent.name = c_url_node
+            # 页面不包含在目录中，但是逻辑继续（deepNode +=1）
+            if "." not in c_url_node:
+                curNode.children.append(c_parent)
+            deepNode += 1
+        node_to_root(rootNode, c_parent, deepNode, urlNode)
+
+
+def append_sub_node(listCategory, url):
     """
     追加子节点到对应的父节点
+    :param listCategory:为当前页面的所有栏目
+    :param url:为但前页面所有的url
     """
-    is_found = False
-    for node in listNode:
-        if node.name == parentNode:
-            is_found = True
-            node.children.append(cTree(nodeName, []))
+    url_schema = urlparse(url)
+    url_path = url_schema.path
+    url_category = []
+
+    if "/" in url_path:
+        url_category = url_path.split("/")
+    len_category = len(url_category)
+    if len_category == 0 or len_category < 1:
+        return False
+
+    # 添加根节点到集合
+    root_exsit = False
+    url_start = join('/', url_category[1] + '/')
+    root_node = cTree(url_start, [], 0)
+    for n in listCategory:
+        if n.name == root_node.name:
+            root_node = n
+            root_exsit = True
             break
-        if len(node.children) != 0:
-            append_sub_node(node.children, parentNode, nodeName)
-    if not is_found:
-        listNode.append(cTree(nodeName, []))
+    if not root_exsit:
+        if "." not in root_node.name:
+            listCategory.append(root_node)
+        else:
+            return False
+
+    # 添加子节点到根节点
+    # 添加子节点从网站根目录开始的第二个节点开始
+    node_to_root(root_node, root_node, 2, url_category)
 
 
 def save_file(content, url, fileroot):
@@ -166,35 +214,10 @@ def parse_html_url(response, page):
 
         # 如果当前页面是首页，则构建改网站的物理架构
         if page.isIndexPage:
-            if "/" in url_schema.path:
-                is_root, n_name = True, ""
-                c_path = url_schema.path
-                t_schema = c_path.split("/")
-                deep_path = len(t_schema)
-                # 添加当前路径的根路径
-                if deep_path > 1:
-                    n_name = join("/", t_schema[1] + "/")
-                    for node in page.category:
-                        if node.name == n_name:
-                            is_root = False
-                if is_root:
-                    page.category.append(cTree(n_name, []))
-                # 添加当前路径的子节点到父路径
-                if deep_path > 3:
-                    # 0:网站根节点，1：紧接网站根结点的下一节点，所以目录构造从2开始
-                    for i in range(2, deep_path - 1): # 不包含尾节点
-                        have_parent = False
-                        pre_node_name = t_schema[i - 1]  # 当前节点的前一节点
-                        pre_node_name = join("/", pre_node_name + "/")
-                        cur_node_name = join("/", t_schema[i] + "/")
-                        #append_sub_node(page.category, pre_node_name, cur_node_name)  # 存在则添加当前节点到前一节点
-                        for node in page.category:
-                            if node.name == pre_node_name:
-                                have_parent = True
-                                node.children.append(cTree(cur_node_name, []))
-                        if not have_parent:
-                            page.category.append(cTree(cur_node_name, []))
+            append_sub_node(page.category, href)
 
         page.urls.append(href)
 
     page.content = response.text
+
+
