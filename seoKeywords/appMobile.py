@@ -343,12 +343,12 @@ if __name__ == "__main__":
         if "," in sys.argv[2]:
             f_keywords = sys.argv[2].split(",")
         else:
-            f_keywords = sys.argv[2]
+            f_keywords.append(sys.argv[2])
     if sys.argv[3].strip() != "_iKw_":
         if "," in sys.argv[3]:
             i_keywords = sys.argv[3].split(",")
         else:
-            i_keywords = sys.argv[3].strip()
+            i_keywords.append(sys.argv[3].strip())
 
     print(u"====================================")
     # print(u"==初始化数据库")
