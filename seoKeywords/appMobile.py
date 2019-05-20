@@ -270,22 +270,22 @@ class MobileKeywords:
         len_queue = len(queue)
 
         while len_queue > 0:
-            is_past_keywords = False  # 是否存在过滤词
-            is_includ_keywords = False  # 是否包含指定词
             self.keywords = queue.pop(0)  # 取出第一个关键词
             
             # 判断当前关键词状态，并获取相关词
             r_keywords = self.is_valid_keywords()
             # 添加关键词到待处理队列
             for kw in r_keywords["sub_keywords"]:
+                is_past_keywords = False  # 是否存在过滤词
+                is_includ_keywords = False  # 是否包含指定词
                 # 关键词存在过滤词不做处理
                 for past_kw in self.filter_keywords:
-                    if past_kw in self.keywords:
+                    if past_kw in kw:
                         is_past_keywords = True
                         break
                 # 关键词不包含指定词不做处理
                 for inl_kw in self.include_keywords:
-                    if inl_kw in self.keywords:
+                    if inl_kw in kw:
                         is_includ_keywords = True
                         break
                 # 重复关键词，或者存在过滤词的关键词不做处理
