@@ -109,8 +109,7 @@ class MobileKeywords:
             if self.retry_counter > 1:
                 self.browser.quit()
                 self.browser = webdriver.Chrome(chrome_options=self.init_driver())
-                self.wait = WebDriverWait(self.browser, self.seconds)
-                print('.............擦 ，重启成功了，还是不幸？？？？？')
+                self.wait = WebDriverWait(self.browser, self.seconds)                
             self.browser.get(req_url)
             return True
         except TimeoutException as ex:
@@ -274,25 +273,25 @@ class MobileKeywords:
             is_past_keywords = False  # 是否存在过滤词
             is_includ_keywords = False  # 是否包含指定词
             self.keywords = queue.pop(0)  # 取出第一个关键词
-
-            # 关键词存在过滤词不做处理
-            for past_kw in self.filter_keywords:
-                if past_kw in self.keywords:
-                    is_past_keywords = True
-                    break
-            # 关键词不包含指定词不做处理
-            for inl_kw in self.include_keywords:
-                if inl_kw in self.keywords:
-                    is_includ_keywords = True
-                    break
-            # 重复关键词，或者存在过滤词的关键词不做处理
-            if is_past_keywords or not is_includ_keywords:
-                len_queue = len(queue)  # 重新计算队列长度，避免无效的循环
-                continue
+            
             # 判断当前关键词状态，并获取相关词
             r_keywords = self.is_valid_keywords()
             # 添加关键词到待处理队列
             for kw in r_keywords["sub_keywords"]:
+                # 关键词存在过滤词不做处理
+                for past_kw in self.filter_keywords:
+                    if past_kw in self.keywords:
+                        is_past_keywords = True
+                        break
+                # 关键词不包含指定词不做处理
+                for inl_kw in self.include_keywords:
+                    if inl_kw in self.keywords:
+                        is_includ_keywords = True
+                        break
+                # 重复关键词，或者存在过滤词的关键词不做处理
+                if is_past_keywords or not is_includ_keywords:
+                    #len_queue = len(queue)  # 重新计算队列长度，避免无效的循环
+                    continue
                 if kw.strip() != "" and kw not in queue_seen:
                     queue.append(kw)
                     queue_seen.add(kw)
