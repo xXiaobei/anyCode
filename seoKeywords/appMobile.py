@@ -277,7 +277,10 @@ class MobileKeywords:
             # 添加关键词到待处理队列
             for kw in r_keywords["sub_keywords"]:
                 is_past_keywords = False  # 是否存在过滤词
-                is_includ_keywords = False  # 是否包含指定词
+                is_includ_keywords = False  # 是否包含指定词                
+                # 关联词不能为空
+                if kw.strip() == "":
+                    continue
                 # 关键词存在过滤词不做处理
                 for past_kw in self.filter_keywords:
                     if past_kw in kw:
@@ -292,7 +295,7 @@ class MobileKeywords:
                 if is_past_keywords or not is_includ_keywords:
                     #len_queue = len(queue)  # 重新计算队列长度，避免无效的循环
                     continue
-                if kw.strip() != "" and kw not in queue_seen:
+                if kw not in queue_seen:
                     queue.append(kw)
                     queue_seen.add(kw)
             # 重新计算队列长度
