@@ -4,6 +4,7 @@
 #无效关键词判断标准：
 # 1：没有搜索结果
 # 2：搜索结果没有10页，且第一页搜索结果没有包含5条关键词收录
+# 3：调整逻辑页数判断去掉，转为调用百度nlp接口判断当前关键词与所搜结果短文本的相似度
 """
 
 import os, sys
@@ -13,8 +14,14 @@ from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from sqlitehelper import dbHelper
+from aip import AipNlp
+#from sqlitehelper import dbHelper
 
+# api 授权信息
+APP_ID = '16170203'
+APP_KEY = 'TQRGlbD2wk9RiG7B48GmHXhV'
+SECRET_KEY = 'LM5F0BGMCnyRyoiQvMPr6ygoyPmq3OqB'
+nlp_client = AipNlp(APP_ID, APP_KEY, SECRET_KEY)
 
 class MobileKeywords:
     """
@@ -33,13 +40,14 @@ class MobileKeywords:
         self.dbHelper = None  # 数据库辅助类
         self.retry_counter = 1  # 失败重试次数
         self.title_counter = 5  # 关键词在搜索结果中出现的次数
+        self.kw_score = 6.1 # 关键词敏感度阀值
         self.page_keywords = 0  # 关键词搜索结果总页
         self.total_keywords = 0  # 总关键词记数
         self.file_save_path = ""  # 关键词文件保存路径
         self.filter_keywords = f_kw  # 过滤的关键词（关键词不得出现该列表中的任何词）
         self.include_keywords = i_kw  # 包含关键词（关键词中必须包含该列表中的任何一个词）
         self.res_keywords = {"valid": False, "sub_keywords": []}
-        self.browser = webdriver.Chrome(chrome_options=self.init_driver())
+        self.browser = webdriver.Chrome(options=self.init_driver())
         self.wait = WebDriverWait(self.browser, wait_seconds)
 
     def init_save_info(self):
@@ -55,8 +63,8 @@ class MobileKeywords:
             print(u"-----------------------------------------------------")
             print(u"==关键词保存路径为：{}".format(self.file_save_path))
             print(u"-----------------------------------------------------")
-        except:
-            print(u"===关键词结果保存文件创建出错，请重试...")
+        except OSError as ex:
+            print(u"===关键词结果保存文件创建出错，请重试..." + str(ex))
             os._exit(0)
 
     def init_driver(self):
@@ -114,7 +122,7 @@ class MobileKeywords:
             return True
         except TimeoutException as ex:
             if self.retry_counter <= 1:
-                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg + str(ex), self.retry_counter))
+                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg, self.retry_counter))
                 self.retry_counter += 1
                 self.request_url(req_url, tipMsg)
             else:
@@ -175,7 +183,8 @@ class MobileKeywords:
                 ele = self.browser.find_element(cur_selector_type, selector)
             else:
                 ele = self.browser.find_elements(cur_selector_type, selector)
-        except:
+        except WebDriverException as ex:
+            print(u"===元素未能发现..." + str(ex))
             return ele
         return ele
 
@@ -228,31 +237,40 @@ class MobileKeywords:
                 if u"其他人还在搜" in title.text:  # 其他人还在搜 相关词
                     kw_others = title.text.replace("其他人还在搜", "").split("\n")
                     for v in kw_others:
+                        if v.strip() == "":
+                            continue
                         self.res_keywords['sub_keywords'].append(v.strip())
                     continue
                 if u"相关搜索" in title.text:
                     continue
-                if self.keywords in title.text and self.title_counter > 0:
-                    self.title_counter -= 1
+                if self.title_counter > 0: # 词意分析
+                    str_xpath = "//div/article/header/div/a/h3"
+                    res_title = self.ele_exist(str_xpath, "xpath", True)
+                    if res_title is not None:
+                        res_nlp = nlp_client.simnet(self.keywords, res_title.text)
+                        if (res_nlp['score'] * 10) > self.kw_score:
+                            self.title_counter -= 1
 
         # 判断当前关键词搜索结果总页数是否大于10页
-        str_xpath = "/html/body/div[3]/div[2]/div[4]/div/a"
-        paging_url = self.ele_exist(str_xpath, "xpath", True)
-        if paging_url is not None:
-            paging_url = paging_url.get_attribute("href").replace(
-                "pn=10", "pn=90")
-            tip_msg = "拉取关键词翻页信息超时"
-            if self.request_url(paging_url, tip_msg) is None:  # 拉取关键词翻页信息
-                print(u"=== %s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
-                return self.res_keywords
-            str_xpath = "/html/body/div[3]/div[2]/div[4]/div/div[2]/span"
-            res_page = self.ele_waiting(str_xpath, "xpath", True, False)
-            if res_page is not None:
-                res_page_num = res_page.text.split(" ")[1]
-                if res_page_num != "":
-                    self.page_keywords = int(res_page_num.strip())
+        # 当前逻辑暂时停用
+        # str_xpath = "/html/body/div[3]/div[2]/div[4]/div/a"
+        # paging_url = self.ele_exist(str_xpath, "xpath", True)
+        # if paging_url is not None:
+        #     paging_url = paging_url.get_attribute("href").replace(
+        #         "pn=10", "pn=90")
+        #     tip_msg = "拉取关键词翻页信息超时"
+        #     if self.request_url(paging_url, tip_msg) is None:  # 拉取关键词翻页信息
+        #         print(u"=== %s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
+        #         return self.res_keywords
+        #     str_xpath = "/html/body/div[3]/div[2]/div[4]/div/div[2]/span"
+        #     res_page = self.ele_waiting(str_xpath, "xpath", True, False)
+        #     if res_page is not None:
+        #         res_page_num = res_page.text.split(" ")[1]
+        #         if res_page_num != "":
+        #             self.page_keywords = int(res_page_num.strip())
 
-        if self.title_counter <= 0 and self.page_keywords >= 10:
+        len_relation_kw = len(self.res_keywords["sub_keywords"])
+        if self.title_counter <= 0 and len_relation_kw > 0:
             self.res_keywords["valid"] = True
 
         return self.res_keywords
@@ -348,7 +366,7 @@ if __name__ == "__main__":
         if "," in sys.argv[3]:
             i_keywords = sys.argv[3].split(",")
         else:
-            i_keywords.append(sys.argv[3].strip())
+            i_keywords.append(sys.argv[3].strip())    
 
     print(u"====================================")
     # print(u"==初始化数据库")

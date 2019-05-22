@@ -44,7 +44,7 @@ def baiduapi():
     APP_KEY = 'TQRGlbD2wk9RiG7B48GmHXhV'
     SECRET_KEY = 'LM5F0BGMCnyRyoiQvMPr6ygoyPmq3OqB'
 
-    keywords = '明晚开什么生肖'
+    keywords = '四肖管三期'
     result_words = [
         "明晚开什么生肖", "明晚开什么码白小姐", "李居明2016年生肖运程", "今晚特马买什么", "2019看图开特马",
         "查看今晚特马多少号", "今晚买四不像", "今晚什么特马生肖资料", "2019年六开彩今晚开奖", "2019年今晚开什么特马",
@@ -117,13 +117,16 @@ def baiduapi():
 
     client = AipNlp(APP_ID, APP_KEY, SECRET_KEY)
 
-    for k in result_words:
+    res = ["管家婆高手论坛四肖管三期*线上游戏 值得体验 *_...","管家婆高手论坛四肖管三期_*好搜热荐 *_安远县社区","四肖中特三期必出期期更新_2018年正版中特_四肖期....",
+    "四肖中特三期内必出 -新平彝族傣族自治县县美食网","一肖十四码管三期 - 简笔画 ","十四码管三期手写"]
+    # print(client.simnet(keywords, ))
+    for k in res:
         res = client.simnet(keywords, k)
         print(res)
 
 
 if __name__ == "__main__":
-    #baiduapi()
+    baiduapi()
     #testurl()
     # list_t = testlist()
     # for x in list_t:
@@ -144,4 +147,3 @@ if __name__ == "__main__":
     # a = "\n".join(str(s) for s in t)
     # print(a)
     # print(sys.argv[0], sys.argv[1], sys.argv[2])
-    
