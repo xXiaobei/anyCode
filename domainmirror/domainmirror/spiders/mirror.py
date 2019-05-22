@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from os.path import join
+from urllib.parse import urlparse
 from scrapy import Request, Spider
 from scrapy.utils.project import get_project_settings
-from domainmirror.helperfunctions import parse_html_url, Page, save_file
+from domainmirror.helperfunctions import parse_html_url, Page, save_file, is_valid_url
 
 
 class MirrorSpider(Spider):
@@ -28,8 +29,11 @@ class MirrorSpider(Spider):
         urls = ['http://zqrb.cn']
         for url in urls:
             page = Page("title_from_db", "kw_from_db", "desc_from_db")
+            page.domain = url
             page.isIndexPage = True
-            page.rootPath = "zqrb.cn"  # TODO:生产环境中从配置中导入
+            page.rootPath = join(self.file_save_root, "zqrb.cn.5.21")  # TODO:"zqrb.cn"生产环境中从配置中导入
+            page.pageLimit = 10  # TODO:每个栏目的页面数从配置中导入
+            page.pageDeep = 2 # TODO：蜘蛛爬行深度从配置中导入
 
             request = Request(url, callback=self.parse)
             request.meta['page'] = page
@@ -41,35 +45,43 @@ class MirrorSpider(Spider):
         """
         url = response.url
         page = response.meta['page']
+        url = str.format("{}/index.html", url)
+
+        # 解析首页html
         parse_html_url(response, page)
 
-        if page.isIndexPage:
-            url = str.format("{}/index.html", url)
+        # 保存首页文件
+        save_file(page, url)
 
-        # file_root_path = join(self.file_save_root, page.rootPath)
-        # save_file(page.content, url, file_root_path)
-
-        # for inner_page_url in page.urls:
-        #     yield Request(inner_page_url, callback=self.parse_inner)
-
-    def parse_index_inner(self, response):
-        """
-        抓取首页所有内容，构建完整首页
-        """
-        
+        # 以首页为起始，爬行整个网站
+        for inner_page_url in page.urls:
+            request = Request(inner_page_url, callback=self.parse_inner)
+            request.meta['page'] = page
+            yield request
 
     def parse_inner(self, response):
         """
         保存内页
         """
-        page_inner = Page('inner_title', 'inner_keywords',
-                          'inner_description')  # TODO:生产环境中从配置导入
+        page_index = response.meta['page']
+        page_inner = Page('inner_title', 'inner_keywords', 'inner_description')  # TODO:生产环境中从配置导入
         page_inner.isIndexPage = False
-        page_inner.rootPath = "zqrb.cn"  # TODO:生产环境中从配置中导入
+        page_inner.domain = page_index.domain
+        page_inner.pagePath = page_index.pagePath
+        page_inner.rootPath = page_index.rootPath
+
+        # 解析内页html
         parse_html_url(response, page_inner)
 
-        file_root_path = join(self.file_save_root, page_inner.rootPath)
-        save_file(page_inner.content, response.url, file_root_path)
+        # 保存内页html文件,并记录当前路径页面统计信息
+        save_file(page_inner, response.url)
 
         for url in page_inner.urls:
-            yield Request(url, callback=self.parse_inner)
+            valid_url = is_valid_url(page_index, url)
+            # 如果当前路径的页面数超过最大限制，则认为该链接无效
+            if not valid_url:
+                continue
+
+            request = Request(url, callback=self.parse_inner)
+            request.meta['page'] = page_index
+            yield request

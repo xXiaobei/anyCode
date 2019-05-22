@@ -341,10 +341,10 @@ class MobileKeywords:
         is_valid_kw = u"有效词"
         if not self.res_keywords["valid"]:
             is_valid_kw = u"无效词"
-        print(u"== ({} / {}) {}，相关词:{} 个,首页出现:{}次，页数为：{}，结果是：{}。".format(
+        print(u"== ({} / {}) {}，相关词:{} 个,首页出现:{}次，结果是：{}。".format(
             c_index, t_index, self.keywords,
             len(self.res_keywords["sub_keywords"]),
-            str(5 - self.title_counter), self.page_keywords, is_valid_kw))
+            str(5 - self.title_counter), is_valid_kw))
 
 
 if __name__ == "__main__":

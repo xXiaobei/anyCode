@@ -7,8 +7,8 @@ from time import time
 from os import makedirs
 from os.path import basename, dirname, join, exists
 from urllib.parse import urlparse, urljoin
-from tldextract import extract  # 解析域名的二级域名
 from collections import defaultdict  # 用于构造树形结构数据
+from tldextract import extract  # 解析域名的二级域名
 
 
 class cTree:
@@ -32,15 +32,22 @@ class Page:
     isIndexPage = False
     # 站点更目录
     rootPath = ""
+    # 站点页面目录 以及该目录对应的页面总数
+    pagePath = {}
     # category 为一个set访问器 记录当前网站所有栏目(以首页为基准)
+    # 该逻辑暂停，写文件时这个逻辑已经体现
     category = []
-    # 每个栏目的page总数
-    category_pages = 0
     # urls 为列表，记录当前页面所有有效的href
     urls = []
     # 当前网站的所有的动态链接，以及每个动态链接对应的静态链接
     # 用于将动态链接静态化
     dynamic_urls = []
+    # 每个栏目页面数目限制
+    pageLimit = 0
+    # 蜘蛛爬行深度，建议为2(从根目录开始,根目录为1)
+    pageDeep = 0
+    # 站点域名
+    domain = ""
 
     def __init__(self, title, kw, desc, content=""):
         self.title = title
@@ -112,17 +119,15 @@ def append_sub_node(listCategory, url):
     node_to_root(root_node, root_node, 2, url_category)
 
 
-def save_file(content, url, fileroot):
+def save_file(page, url):
     """
     文件写入本地
-    :param content: 即将写入的内容
+    :param page: 当前页面对象
     :param url: 当前页面的url，用于分析页面保存的路径
-    :param fileRoot: 当前爬虫项目文件保存路径
     """
 
-    # TODO: 写文件时，将href中的源网站网址，替换为目标占的网址
-
     is_inner_page = False
+    url_schema = urlparse(url)
     file_extends = [
         ".html", ".shtml", ".htm", ".php", ".jsp", ".php", ".asp", ".shtm",
         ".dhtml", ".xhtml"
@@ -137,22 +142,34 @@ def save_file(content, url, fileroot):
         if not str(url).endswith("/"):
             url = url + "/"  # 如果栏目的结尾不是/，加上/，避免urlparse后的path不准确
 
-    url_schema = urlparse(url)
-    file_path = fileroot + dirname(url_schema.path)
+    file_path = page.rootPath + dirname(url_schema.path)
 
     # 文件路经不存在则创建
     if not exists(file_path):
         try:
             makedirs(file_path)
-        except Exception as ex:
+        except OSError as ex:
             print(u"路径创建失败 %s" % file_path + str(ex))
 
+    # 但前路径（url）页面的记数逻辑
+    page_counter = 0
+    # 路径存在则直接赋值记数
+    if file_path in page.pagePath:
+        page_counter = int(page.pagePath[file_path])
+
     try:
-        file_name = join(file_path, basename(url_schema.path))
-        with codecs.open(file_name, 'w+', 'utf-8') as file:
-            file.write(content)
-    except Exception as ex:
+        file_name = basename(url_schema.path)
+        if file_name.strip() == "":
+            file_name = "index.html"
+        file_full_name = join(file_path, file_name)
+        with codecs.open(file_full_name, 'w+', 'utf-8') as file:
+            file.write(page.content)
+            page_counter += 1  # 文件写入成功，当前路径（url）页面记数+1
+    except OSError as ex:
         print(u"文件写入失败 %s " % url_schema.path + str(ex))
+
+    # 更新当前路径（url）的页面记数
+    page.pagePath[file_path] = page_counter
 
 
 def parse_html_url(response, page):
@@ -161,44 +178,38 @@ def parse_html_url(response, page):
     :param response: 蜘蛛爬行的结果
     :param page 自定义数据临时存储类
     """
-
-    site_url = extract(response.url).domain  # 解析当前域名的主域名
-    site_url_suf = extract(response.url).suffix  # 域名后缀
+    htmls = response.text
     links_href = response.xpath("//@href").getall()
     links_src = response.xpath("//@src").getall()
     dynamic_urls = [".php", ".jsp", ".aspx", ".asp"]
-    index_links = [
-        "http://www.{}.{}".format(site_url, site_url_suf),
-        "http://www.{}.{}/".format(site_url, site_url_suf),
-        "https://www.{}.{}".format(site_url, site_url_suf),
-        "https://www.{}.{}/".format(site_url, site_url_suf)
-    ]
 
     #TODO:TDK 处理逻辑
 
     # 当前站点的所有资源路径改为绝对路径
     for src in links_src:
-        if site_url in src:
-            url_schema = urlparse(src)
-            if url_schema.path == "":
-                abs_src = urljoin(response.url, str.strip(src))
-                response.text = response.text.replace(src, abs_src)
+        url_schema = urlparse(src)
+        if url_schema.netloc == "":
+            abs_src = urljoin(page.domain, str.strip(src))
+            htmls = htmls.replace(src, abs_src)
 
     # 过滤href供spider爬取
     for href in links_href:
         url_schema = urlparse(href)
 
-        if ".css" in href or ".ico" in href:  # css链接,ico 文件不爬取
-            if url_schema.scheme == "":
-                abs_css_href = urljoin(response.url, str.strip(href))
-                response.text = response.text.replace(href, abs_css_href)
+        # 排除一些无效链接
+        if url_schema.netloc == "" and url_schema.path == "":
             continue
-        if url_schema.path != "" and url_schema.scheme == "":  # 转为绝对路径
-            href = urljoin(response.url, href)
-            url_schema = urlparse(href)
-        if str.strip(href) in index_links:  # 排除首页
+        # 替换当前页面中的相对路径为绝对路径
+        if url_schema.netloc == "":
+            if not href.startswith("/"):
+                abs_href = urljoin(page.domain, "/" + href)
+                htmls = htmls.replace(href, abs_href)
+                url_schema = urlparse(abs_href)
+        # css链接,ico 文件不爬取
+        if ".css" in href or ".ico" in href:
             continue
-        if url_schema.scheme not in ["http", "https"]:  # 排除一些无效链接
+        # 排除首页
+        if url_schema.path == "" or url_schema.path == "/":
             continue
         if extract(href).subdomain != "www":  # www外的二级域名不爬取
             continue
@@ -213,11 +224,55 @@ def parse_html_url(response, page):
                 })
 
         # 如果当前页面是首页，则构建改网站的物理架构
-        if page.isIndexPage:
-            append_sub_node(page.category, href)
+        # if page.isIndexPage:
+        #     append_sub_node(page.category, href)
 
-        page.urls.append(href)
+        page.urls.append(href.strip())
 
-    page.content = response.text
+    page.content = htmls
 
 
+def is_valid_url(page, cur_url):
+    """
+    判断当前的url是否为有效的url
+    :param page:首页page对象，记录当前网站蜘蛛爬行相关参数
+    :param cur_url:待验证的url
+    :return res_check:True为有效链接，反之False
+    认为无效url的情况为：
+    1：在当前目录下，页面总数已超过设定值
+    2：非本站的url
+    3：url的path为根目录的/
+    4：url的深度到过设置的蜘蛛爬行深度
+    """
+
+    res_check = True
+    c_url_schema = urlparse(cur_url)
+    c_url_domain = extract(cur_url).domain
+    invalid_file_ext = [
+        ".css", ".js", ".jpg", ".gif", ".png", ".bmp", ".psd", ".jpeg"
+    ]
+
+    # url的path为根目录/，判定无效链接
+    if c_url_schema.path == "/":
+        return False
+    # 判断当前url的域名是否为本站域名
+    if c_url_domain not in page.domain:
+        return False
+    # 文件扩展名过滤，资源文件不下载
+    file_name = basename(c_url_schema.path).lower()
+    if file_name in invalid_file_ext:
+        return False
+    # 判断当前链接的深度是否在设置的范围内，超出则不采集
+    if "/" in c_url_schema.path:
+        c_url_deep = len(c_url_schema.path.split("/")) - 1
+
+    # 判断当前路径的页面总数，超过则蜘蛛不爬取，判定为无效链接
+    c_url_path = c_url_schema.path
+    if "." in c_url_path:  # 判断当前url是否包含页面
+        c_url_path = c_url_path[0:c_url_path.rindex('/') + 1]
+    for path in page.pagePath:
+        if c_url_path in path:
+            if int(page.pagePath[path]) > page.pageLimit:
+                return False
+
+    return res_check
