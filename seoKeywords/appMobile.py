@@ -55,7 +55,7 @@ class MobileKeywords:
         初始化关键词保存相关
         """
         try:
-            file_path = '/home/bbei/Project/anyCode/seoKeywords/' # '/home/documents/seobaidu/baiduci/'
+            file_path = '/home/documents/seobaidu/baiduci/'
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
             file_name = os.path.join(file_path, u"{}.txt".format(self.keywords))
@@ -364,21 +364,20 @@ if __name__ == "__main__":
 
     #keywords,f_keywords,i_keywords 由.sh提供参数
     f_keywords, i_keywords = [], []
-    # keywords = sys.argv[1]
-    # if keywords.strip() == "":
-    #     print(u"主关键词不能为空,请重试...")
-    #     os._exit(0)
-    # if sys.argv[2].strip() != "_fkw_":
-    #     if "," in sys.argv[2]:
-    #         f_keywords = sys.argv[2].split(",")
-    #     else:
-    #         f_keywords.append(sys.argv[2])
-    # if sys.argv[3].strip() != "_iKw_":
-    #     if "," in sys.argv[3]:
-    #         i_keywords = sys.argv[3].split(",")
-    #     else:
-    #         i_keywords.append(sys.argv[3].strip())
-    keywords = '二四六'
+    keywords = sys.argv[1]
+    if keywords.strip() == "":
+        print(u"主关键词不能为空,请重试...")
+        os._exit(0)
+    if sys.argv[2].strip() != "_fkw_":
+        if "," in sys.argv[2]:
+            f_keywords = sys.argv[2].split(",")
+        else:
+            f_keywords.append(sys.argv[2])
+    if sys.argv[3].strip() != "_iKw_":
+        if "," in sys.argv[3]:
+            i_keywords = sys.argv[3].split(",")
+        else:
+            i_keywords.append(sys.argv[3].strip())
 
     print(u"====================================")
     # print(u"==初始化数据库")
