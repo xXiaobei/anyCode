@@ -184,7 +184,7 @@ class MobileKeywords:
             else:
                 ele = self.browser.find_elements(cur_selector_type, selector)
         except WebDriverException as ex:
-            print(u"===元素未能发现..." + str(ex))
+            print(u"===元素未能发现..." + selector)
             return ele
         return ele
 
@@ -304,7 +304,9 @@ class MobileKeywords:
                     if past_kw in kw:
                         is_past_keywords = True
                         break
-                # 关键词不包含指定词不做处理
+                # 关键词不包含指定词不做处理,包含词为空，则认为该关键词存在包含词
+                if len(self.include_keywords) == 0:
+                    is_includ_keywords = True
                 for inl_kw in self.include_keywords:
                     if inl_kw in kw:
                         is_includ_keywords = True
