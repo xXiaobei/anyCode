@@ -248,8 +248,9 @@ class MobileKeywords:
                     res_title = self.ele_exist(str_xpath, "xpath", True)
                     if res_title is not None:
                         res_nlp = nlp_client.simnet(self.keywords, res_title.text)
-                        if (res_nlp['score'] * 10) > self.kw_score:
-                            self.title_counter -= 1
+                        if res_nlp:
+                            if (res_nlp['score'] * 10) > self.kw_score:
+                                self.title_counter -= 1
 
         # 判断当前关键词搜索结果总页数是否大于10页
         # 当前逻辑暂时停用
