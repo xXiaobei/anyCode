@@ -184,7 +184,7 @@ class MobileKeywords:
             else:
                 ele = self.browser.find_elements(cur_selector_type, selector)
         except WebDriverException as ex:
-            print(u"===元素未能发现..." + selector)
+            #print(u"===元素未能发现..." + selector)
             return ele
         return ele
 
