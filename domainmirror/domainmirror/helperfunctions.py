@@ -45,6 +45,7 @@ class Page:
     # 每个栏目页面数目限制
     pageLimit = 0
     # 蜘蛛爬行深度，建议为2(从根目录开始,根目录为1)
+    # 爬行深度超过2，总页面算法为 pageLimit的(n-1)次方,n为蜘蛛爬行深度
     pageDeep = 0
     # 站点域名
     domain = ""
@@ -151,11 +152,12 @@ def save_file(page, url):
         except OSError as ex:
             print(u"路径创建失败 %s" % file_path + str(ex))
 
-    # 但前路径（url）页面的记数逻辑
+    # 但前url
     page_counter = 0
+    url_path = url_root_path(url, page)
     # 路径存在则直接赋值记数
-    if file_path in page.pagePath:
-        page_counter = int(page.pagePath[file_path])
+    if url_path in page.pagePath:
+        page_counter = int(page.pagePath[url_path])
 
     try:
         file_name = basename(url_schema.path)
@@ -169,7 +171,7 @@ def save_file(page, url):
         print(u"文件写入失败 %s " % url_schema.path + str(ex))
 
     # 更新当前路径（url）的页面记数
-    page.pagePath[file_path] = page_counter
+    page.pagePath[url_path] = page_counter
 
 
 def parse_html_url(response, page):
@@ -227,7 +229,15 @@ def parse_html_url(response, page):
         # if page.isIndexPage:
         #     append_sub_node(page.category, href)
 
-        page.urls.append(href.strip())
+        # 当前页面如果为首页，则检索出所有的栏目页（栏目的深度为配置的蜘蛛爬行深度）
+        if page.isIndexPage:
+            cat_path = url_root_path(href, page)
+            if cat_path != "":
+                page.pagePath[cat_path] = 0 # 每个栏目默认的页面记数为0
+
+        # 判断当前url是否为有效url
+        if is_valid_url(href.strip(), page):
+            page.urls.append(href.strip())
 
     page.content = htmls
 
@@ -242,7 +252,7 @@ def is_valid_url(page, cur_url):
     1：在当前目录下，页面总数已超过设定值
     2：非本站的url
     3：url的path为根目录的/
-    4：url的深度到过设置的蜘蛛爬行深度
+    4：url的所在的栏目总页面数超过设定值的
     """
 
     res_check = True
@@ -262,17 +272,28 @@ def is_valid_url(page, cur_url):
     file_name = basename(c_url_schema.path).lower()
     if file_name in invalid_file_ext:
         return False
-    # 判断当前链接的深度是否在设置的范围内，超出则不采集
-    if "/" in c_url_schema.path:
-        c_url_deep = len(c_url_schema.path.split("/")) - 1
-
-    # 判断当前路径的页面总数，超过则蜘蛛不爬取，判定为无效链接
-    c_url_path = c_url_schema.path
-    if "." in c_url_path:  # 判断当前url是否包含页面
-        c_url_path = c_url_path[0:c_url_path.rindex('/') + 1]
-    for path in page.pagePath:
-        if c_url_path in path:
-            if int(page.pagePath[path]) > page.pageLimit:
+    # 当前url所在的栏目的页面数判断
+    each_path = c_url_schema.path.split("/")
+    len_each_path = len(each_path)
+    if len_each_path > 2:
+        r_path = url_root_path(cur_url, page)
+        if r_path in page.pagePath:
+            if page.pagePath[r_path] > page.pageLimit:
                 return False
 
     return res_check
+
+def url_root_path(url, page):
+    """
+    根据配置获取当前url的根目录
+    :param url: 待确定根目录的url
+    :param page: 当前页面的配置
+    """
+    dist_path = "/" # 最终目录以根目录开始
+    each_path = url.split('/')
+    len_each_path = len(each_path)
+    if len_each_path < 2:
+        return ""
+    for i in range(1, page.pageDeep):
+        dist_path += each_path[i] + "/"
+    return dist_path

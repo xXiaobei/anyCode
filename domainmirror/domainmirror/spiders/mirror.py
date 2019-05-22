@@ -23,6 +23,12 @@ class MirrorSpider(Spider):
     # 文件保存路径
     file_save_root = pro_setting['FILE_STORE']
 
+    # bfs算法爬取页面，当前站点所有的页面
+    domainPages = []
+
+    # 当前站点已处理的页面
+    domainPageSeen = set()
+
     # 重写父类的函数,spider开始爬行执行此函数
     def start_requests(self):
         # 定义爬行的链接
@@ -32,8 +38,12 @@ class MirrorSpider(Spider):
             page.domain = url
             page.isIndexPage = True
             page.rootPath = join(self.file_save_root, "zqrb.cn.5.21")  # TODO:"zqrb.cn"生产环境中从配置中导入
-            page.pageLimit = 10  # TODO:每个栏目的页面数从配置中导入
+            page.pageLimit = 100  # TODO:每个栏目的页面数从配置中导入
             page.pageDeep = 2 # TODO：蜘蛛爬行深度从配置中导入
+
+            # 初始化bsf基准值
+            self.domainPages.clear()
+            self.domainPageSeen.clear()
 
             request = Request(url, callback=self.parse)
             request.meta['page'] = page
@@ -41,7 +51,7 @@ class MirrorSpider(Spider):
 
     def parse(self, response):
         """
-        保存首页
+        解析首页
         """
         url = response.url
         page = response.meta['page']
@@ -53,15 +63,23 @@ class MirrorSpider(Spider):
         # 保存首页文件
         save_file(page, url)
 
+        # 获取首页所有链接
+        self.domainPages.extend(page.urls)
+
         # 以首页为起始，爬行整个网站
-        for inner_page_url in page.urls:
-            request = Request(inner_page_url, callback=self.parse_inner)
-            request.meta['page'] = page
-            yield request
+        pageCounter = len(self.domainPages)
+        while pageCounter > 0:
+            inner_page_url = self.domainPages.pop(0)
+            if inner_page_url not in self.domainPageSeen:
+                request = Request(inner_page_url, callback=self.parse_inner)
+                request.meta['page'] = page
+                yield request
+            self.domainPageSeen.add(inner_page_url)
+
 
     def parse_inner(self, response):
         """
-        保存内页
+        保存内页，并获取内页的url到集合
         """
         page_index = response.meta['page']
         page_inner = Page('inner_title', 'inner_keywords', 'inner_description')  # TODO:生产环境中从配置导入
@@ -76,12 +94,5 @@ class MirrorSpider(Spider):
         # 保存内页html文件,并记录当前路径页面统计信息
         save_file(page_inner, response.url)
 
-        for url in page_inner.urls:
-            valid_url = is_valid_url(page_index, url)
-            # 如果当前路径的页面数超过最大限制，则认为该链接无效
-            if not valid_url:
-                continue
-
-            request = Request(url, callback=self.parse_inner)
-            request.meta['page'] = page_index
-            yield request
+        # 添加当前页面的url到队列中
+        self.domainPages.extend(page_inner.urls)

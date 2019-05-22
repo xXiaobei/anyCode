@@ -254,11 +254,12 @@ class MobileKeywords:
                         continue
                     try:
                         res_nlp = nlp_client.simnet(self.keywords, res_title.text)
-                        if 'score' in res_nlp:
-                            if (res_nlp['score'] * 10) > self.kw_score:
-                                self.title_counter -= 1
                     except UnicodeEncodeError as ex:
-                        print(u"=== {} 编码转换错误，词意分析出错...".format(self.keywords))
+                        print(u"=== {} 编码转换错误，词意分析出错，继续下个关键词...".format(self.keywords))
+                        break
+                    if 'score' in res_nlp:
+                        if (res_nlp['score'] * 10) > self.kw_score:
+                            self.title_counter -= 1
 
         # 判断当前关键词搜索结果总页数是否大于10页
         # 当前逻辑暂时停用
