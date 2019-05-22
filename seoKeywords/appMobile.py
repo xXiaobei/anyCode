@@ -133,11 +133,14 @@ class MobileKeywords:
         """
         将关键词写入文件
         """
-        # 添加encoding='utf-8'避免出现UnicodeEncodeError错误
-        with open(self.file_save_path, 'a+', encoding='utf-8') as f:
-            s = "\n".join(s for s in kw_data)
-            f.write(s)
-        kw_data.clear()  # 清空，为下次准备
+        try:
+            # 添加encoding='utf-8'避免出现UnicodeEncodeError错误
+            with open(self.file_save_path, 'a+', encoding='utf-8') as f:
+                s = "\n".join(s for s in kw_data)
+                f.write(s)
+            kw_data.clear()  # 清空，为下次准备
+        except UnicodeEncodeError as ex:
+            print(u"===关键词写入文件失败,继续下一个关键词...")
 
     def ele_waiting(self, selector, selector_type, wait_type, retry):
         """
