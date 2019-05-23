@@ -259,6 +259,10 @@ class MobileKeywords:
                         break
                     except UnicodeDecodeError as ex:
                         print(u"=== {} 编码解码错误，词意分析出错，继续下个关键词...".format(self.keywords))
+                        break
+                    except:
+                        print(u"=== {} 接口调用出错，继续下个关键词...".format(self.keywords))
+                        break
                     if 'score' in res_nlp:
                         if (res_nlp['score'] * 10) > self.kw_score:
                             self.title_counter -= 1
