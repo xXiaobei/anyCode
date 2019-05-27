@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from os.path import join
+from os.path import join, dirname
 from urllib.parse import urlparse
 from scrapy import Request, Spider
 from scrapy.utils.project import get_project_settings
@@ -23,27 +23,22 @@ class MirrorSpider(Spider):
     # 文件保存路径
     file_save_root = pro_setting['FILE_STORE']
 
-    # bfs算法爬取页面，当前站点所有的页面
-    domainPages = []
-
-    # 当前站点已处理的页面
-    domainPageSeen = set()
-
     # 重写父类的函数,spider开始爬行执行此函数
     def start_requests(self):
         # 定义爬行的链接
-        urls = ['http://zqrb.cn']
+        #urls = ['http://zqrb.cn', "https://www.z01.com"]
+        urls = ["https://www.z01.com"]
         for url in urls:
             page = Page("title_from_db", "kw_from_db", "desc_from_db")
             page.domain = url
             page.isIndexPage = True
-            page.rootPath = join(self.file_save_root, "zqrb.cn.5.21")  # TODO:"zqrb.cn"生产环境中从配置中导入
-            page.pageLimit = 100  # TODO:每个栏目的页面数从配置中导入
-            page.pageDeep = 2 # TODO：蜘蛛爬行深度从配置中导入
 
-            # 初始化bsf基准值
-            self.domainPages.clear()
-            self.domainPageSeen.clear()
+            s_path = url.replace("http://", "") # TODO:"zqrb.cn"生产环境中从配置中导入
+            s_path = url.replace("https://www.", "") # TODO:"zqrb.cn"生产环境中从配置中导入
+
+            page.rootPath = join(self.file_save_root, s_path)  # TODO:"zqrb.cn"生产环境中从配置中导入
+            page.pageLimit = 5  # TODO:每个栏目的页面数从配置中导入
+            page.pageDeep = 2  # TODO：蜘蛛爬行深度从配置中导入
 
             request = Request(url, callback=self.parse)
             request.meta['page'] = page
@@ -55,7 +50,9 @@ class MirrorSpider(Spider):
         """
         url = response.url
         page = response.meta['page']
-        url = str.format("{}/index.html", url)
+
+        if page.isIndexPage:
+            url = str.format("{}/index.html", url)
 
         # 解析首页html
         parse_html_url(response, page)
@@ -64,27 +61,38 @@ class MirrorSpider(Spider):
         save_file(page, url)
 
         # 获取首页所有链接
-        self.domainPages.extend(page.urls)
+        # page.domainUrls.extend(page.urls)
 
-        # 以首页为起始，爬行整个网站
-        pageCounter = len(self.domainPages)
-        while pageCounter > 0:
-            inner_page_url = self.domainPages.pop(0)
-            if inner_page_url not in self.domainPageSeen:
-                request = Request(inner_page_url, callback=self.parse_inner)
-                request.meta['page'] = page
-                yield request
-            self.domainPageSeen.add(inner_page_url)
-
+        # # 以首页为起始，爬行整个网站
+        # while page.domainUrls:
+        #     inner_page_url = page.domainUrls.pop(0)
+        #     request = Request(inner_page_url, callback=self.parse_inner)
+        #     # request = Request(inner_page_url, callback=self.parse)
+        #     request.meta['page'] = page
+        #     # c_url_schema = urlparse(inner_page_url)
+        #     # dir_name = dirname(page.rootPath + dirname(c_url_schema.path))
+        #     # if dir_name in page.categoryPages:
+        #     #     if page.categoryPages[dir_name] > page.pageLimit:
+        #     #         continue
+        #     #     # print(u"============================= {}: 页面数： {}".format(
+        #     #     # dir_name, page.categoryPages[dir_name]))            
+        #     yield request
+        #     page.domainUrlSeen.add(inner_page_url)
+        for url in page.urls:
+            request = Request(url, callback=self.parse_inner)
+            request.meta['page'] = page
+            yield request
 
     def parse_inner(self, response):
         """
         保存内页，并获取内页的url到集合
         """
         page_index = response.meta['page']
-        page_inner = Page('inner_title', 'inner_keywords', 'inner_description')  # TODO:生产环境中从配置导入
+        page_inner = Page('inner_title', 'inner_keywords',
+                          'inner_description')  # TODO:生产环境中从配置导入
         page_inner.isIndexPage = False
         page_inner.domain = page_index.domain
+        page_inner.pageDeep = page_index.pageDeep
         page_inner.pagePath = page_index.pagePath
         page_inner.rootPath = page_index.rootPath
 
@@ -94,5 +102,9 @@ class MirrorSpider(Spider):
         # 保存内页html文件,并记录当前路径页面统计信息
         save_file(page_inner, response.url)
 
+        # for inner_url in page_inner.urls:
+        #     request = Request(inner_url, callback=self.parse_inner)
+        #     request.meta['page'] = page_index
+        #     yield request
         # 添加当前页面的url到队列中
-        self.domainPages.extend(page_inner.urls)
+        #page_index.domainUrls.extend(page_inner.urls)

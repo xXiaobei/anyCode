@@ -32,21 +32,21 @@ class Page:
     isIndexPage = False
     # 站点更目录
     rootPath = ""
-    # 站点页面目录 以及该目录对应的页面总数
-    pagePath = {}
-    # category 为一个set访问器 记录当前网站所有栏目(以首页为基准)
-    # 该逻辑暂停，写文件时这个逻辑已经体现
-    category = []
+    # 站点页面目录
+    pagePath = set()
+    # 记录每个文件路径下的文件数（对应页面数限制）
+    categoryPages = {}
     # urls 为列表，记录当前页面所有有效的href
     urls = []
+    # domainUrls 为当前站点所有的有效页面（url）
+    domainUrls = []
+    # domainUrlSeen 记录当前站点已处理的页面（url）
+    domainUrlSeen = set()
     # 当前网站的所有的动态链接，以及每个动态链接对应的静态链接
     # 用于将动态链接静态化
     dynamic_urls = []
     # 每个栏目页面数目限制
     pageLimit = 0
-    # 蜘蛛爬行深度，建议为2(从根目录开始,根目录为1)
-    # 爬行深度超过2，总页面算法为 pageLimit的(n-1)次方,n为蜘蛛爬行深度
-    pageDeep = 0
     # 站点域名
     domain = ""
 
@@ -126,22 +126,11 @@ def save_file(page, url):
     :param page: 当前页面对象
     :param url: 当前页面的url，用于分析页面保存的路径
     """
-
-    is_inner_page = False
     url_schema = urlparse(url)
-    file_extends = [
-        ".html", ".shtml", ".htm", ".php", ".jsp", ".php", ".asp", ".shtm",
-        ".dhtml", ".xhtml"
-    ]
-
-    for extend in file_extends:
-        if extend in url:
-            is_inner_page = True
-            break
-
-    if not is_inner_page:
-        if not str(url).endswith("/"):
-            url = url + "/"  # 如果栏目的结尾不是/，加上/，避免urlparse后的path不准确
+    # file_extends = [
+    #     ".html", ".shtml", ".htm", ".php", ".jsp", ".php", ".asp", ".shtm",
+    #     ".dhtml", ".xhtml"
+    # ]
 
     file_path = page.rootPath + dirname(url_schema.path)
 
@@ -152,26 +141,35 @@ def save_file(page, url):
         except OSError as ex:
             print(u"路径创建失败 %s" % file_path + str(ex))
 
-    # 但前url
-    page_counter = 0
-    url_path = url_root_path(url, page)
-    # 路径存在则直接赋值记数
-    if url_path in page.pagePath:
-        page_counter = int(page.pagePath[url_path])
-
     try:
         file_name = basename(url_schema.path)
         if file_name.strip() == "":
             file_name = "index.html"
         file_full_name = join(file_path, file_name)
+
+        # 当前目录文件数量限制,排除根目录
+        res_file_path = dirname(dirname(file_full_name))
+        # 初始化目录的文件记数,排除根目录
+        if (res_file_path not in page.categoryPages
+                and res_file_path != page.rootPath):
+            page.categoryPages[res_file_path] = 0
+
         with codecs.open(file_full_name, 'w+', 'utf-8') as file:
             file.write(page.content)
-            page_counter += 1  # 文件写入成功，当前路径（url）页面记数+1
+            if res_file_path != page.rootPath:
+                page.categoryPages[res_file_path] += 1
+        # if page.categoryPages[res_file_path] < page.pageLimit:
+        #     # 写文件，并记录当前目录记数
+        #     with codecs.open(file_full_name, 'w+', 'utf-8') as file:
+        #         file.write(page.content)
+        #         if res_file_path != page.rootPath:
+        #             page.categoryPages[res_file_path] += 1
     except OSError as ex:
         print(u"文件写入失败 %s " % url_schema.path + str(ex))
 
-    # 更新当前路径（url）的页面记数
-    page.pagePath[url_path] = page_counter
+    # 更改首页标识
+    if page.isIndexPage:
+        page.isIndexPage = False  # 首页只会出现一次
 
 
 def parse_html_url(response, page):
@@ -181,6 +179,8 @@ def parse_html_url(response, page):
     :param page 自定义数据临时存储类
     """
     htmls = response.text
+    link_href_seen = set()
+    link_src_seen = set()
     links_href = response.xpath("//@href").getall()
     links_src = response.xpath("//@src").getall()
     dynamic_urls = [".php", ".jsp", ".aspx", ".asp"]
@@ -190,9 +190,12 @@ def parse_html_url(response, page):
     # 当前站点的所有资源路径改为绝对路径
     for src in links_src:
         url_schema = urlparse(src)
-        if url_schema.netloc == "":
+        if (url_schema.netloc == "" and src not in link_src_seen
+                and url_schema.path != "/"):
+                
             abs_src = urljoin(page.domain, str.strip(src))
             htmls = htmls.replace(src, abs_src)
+            link_src_seen.add(src)
 
     # 过滤href供spider爬取
     for href in links_href:
@@ -202,11 +205,13 @@ def parse_html_url(response, page):
         if url_schema.netloc == "" and url_schema.path == "":
             continue
         # 替换当前页面中的相对路径为绝对路径
-        if url_schema.netloc == "":
-            if not href.startswith("/"):
-                abs_href = urljoin(page.domain, "/" + href)
-                htmls = htmls.replace(href, abs_href)
-                url_schema = urlparse(abs_href)
+        if (url_schema.netloc == "" and href not in link_href_seen
+                and url_schema.path != "/"):
+
+            abs_href = urljoin(page.domain, href)
+            htmls = htmls.replace(href, abs_href)
+            url_schema = urlparse(abs_href)
+            link_href_seen.add(href)
         # css链接,ico 文件不爬取
         if ".css" in href or ".ico" in href:
             continue
@@ -229,16 +234,16 @@ def parse_html_url(response, page):
         # if page.isIndexPage:
         #     append_sub_node(page.category, href)
 
-        # 当前页面如果为首页，则检索出所有的栏目页（栏目的深度为配置的蜘蛛爬行深度）
-        if page.isIndexPage:
-            cat_path = url_root_path(href, page)
-            if cat_path != "":
-                page.pagePath[cat_path] = 0 # 每个栏目默认的页面记数为0
-
-        # 判断当前url是否为有效url
-        if is_valid_url(href.strip(), page):
+        # 判断当前url是否为有效url,首页中的链接不用校验
+        if is_valid_url(page, href.strip()) or page.isIndexPage:
             page.urls.append(href.strip())
 
+    # 当前页面如果为首页，则检索出所有的栏目页
+    if page.isIndexPage:
+        for url in page.urls:
+            cat_path = url_root_path(url, page)
+            if cat_path != "":
+                page.pagePath.add(cat_path)
     page.content = htmls
 
 
@@ -252,7 +257,8 @@ def is_valid_url(page, cur_url):
     1：在当前目录下，页面总数已超过设定值
     2：非本站的url
     3：url的path为根目录的/
-    4：url的所在的栏目总页面数超过设定值的
+    4：url所在的顶级目录没有出现在首页的
+    5：已爬取过的不再爬取
     """
 
     res_check = True
@@ -272,16 +278,23 @@ def is_valid_url(page, cur_url):
     file_name = basename(c_url_schema.path).lower()
     if file_name in invalid_file_ext:
         return False
-    # 当前url所在的栏目的页面数判断
+    # 当前url的顶级栏目没有出现在首页则不爬取
     each_path = c_url_schema.path.split("/")
     len_each_path = len(each_path)
     if len_each_path > 2:
         r_path = url_root_path(cur_url, page)
-        if r_path in page.pagePath:
-            if page.pagePath[r_path] > page.pageLimit:
-                return False
-
+        if r_path not in page.pagePath:
+            return False
+    # 爬取过的url不再爬取
+    if cur_url in page.domainUrlSeen:
+        return False
+    # 当前url所属的栏目
+    dir_name = dirname(page.rootPath + dirname(c_url_schema.path))
+    if dir_name in page.categoryPages and dir_name != page.rootPath:
+        if page.categoryPages[dir_name] > page.pageLimit:
+            return False
     return res_check
+
 
 def url_root_path(url, page):
     """
@@ -289,8 +302,9 @@ def url_root_path(url, page):
     :param url: 待确定根目录的url
     :param page: 当前页面的配置
     """
-    dist_path = "/" # 最终目录以根目录开始
-    each_path = url.split('/')
+    dist_path = "/"  # 最终目录以根目录开始
+    url_path = urlparse(url).path
+    each_path = url_path.split('/')
     len_each_path = len(each_path)
     if len_each_path < 2:
         return ""
