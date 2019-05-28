@@ -192,7 +192,6 @@ def parse_html_url(response, page):
         url_schema = urlparse(src)
         if (url_schema.netloc == "" and src not in link_src_seen
                 and url_schema.path != "/"):
-                
             abs_src = urljoin(page.domain, str.strip(src))
             htmls = htmls.replace(src, abs_src)
             link_src_seen.add(src)
@@ -207,7 +206,6 @@ def parse_html_url(response, page):
         # 替换当前页面中的相对路径为绝对路径
         if (url_schema.netloc == "" and href not in link_href_seen
                 and url_schema.path != "/"):
-
             abs_href = urljoin(page.domain, href)
             htmls = htmls.replace(href, abs_href)
             url_schema = urlparse(abs_href)
@@ -238,12 +236,17 @@ def parse_html_url(response, page):
         if is_valid_url(page, href.strip()) or page.isIndexPage:
             page.urls.append(href.strip())
 
+            # 替换测试域名
+            if page.domain in href:
+                rep_href = href.replace(page.domain, "mirrort.com")
+                htmls = htmls.replace(href, rep_href)
+
     # 当前页面如果为首页，则检索出所有的栏目页
-    if page.isIndexPage:
-        for url in page.urls:
-            cat_path = url_root_path(url, page)
-            if cat_path != "":
-                page.pagePath.add(cat_path)
+    # if page.isIndexPage:
+    #     for url in page.urls:
+    #         cat_path = url_root_path(url, page)
+    #         if cat_path != "":
+    #             page.pagePath.add(cat_path)
     page.content = htmls
 
 
@@ -289,10 +292,10 @@ def is_valid_url(page, cur_url):
     if cur_url in page.domainUrlSeen:
         return False
     # 当前url所属的栏目
-    dir_name = dirname(page.rootPath + dirname(c_url_schema.path))
-    if dir_name in page.categoryPages and dir_name != page.rootPath:
-        if page.categoryPages[dir_name] > page.pageLimit:
-            return False
+    # dir_name = dirname(page.rootPath + dirname(c_url_schema.path))
+    # if dir_name in page.categoryPages and dir_name != page.rootPath:
+    #     if page.categoryPages[dir_name] > page.pageLimit:
+    #         return False
     return res_check
 
 
@@ -308,6 +311,7 @@ def url_root_path(url, page):
     len_each_path = len(each_path)
     if len_each_path < 2:
         return ""
-    for i in range(1, page.pageDeep):
+    # 每个链接的根目录默认为网站根目录的下一个目录
+    for i in range(1, 2):
         dist_path += each_path[i] + "/"
     return dist_path

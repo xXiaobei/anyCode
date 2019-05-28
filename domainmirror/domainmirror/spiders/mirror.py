@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from os.path import join, dirname
-from urllib.parse import urlparse
+from os.path import join
 from scrapy import Request, Spider
+from tldextract import extract
 from scrapy.utils.project import get_project_settings
-from domainmirror.helperfunctions import parse_html_url, Page, save_file, is_valid_url
+from domainmirror.helperfunctions import parse_html_url, Page, save_file
 
 
 class MirrorSpider(Spider):
@@ -27,18 +27,16 @@ class MirrorSpider(Spider):
     def start_requests(self):
         # 定义爬行的链接
         #urls = ['http://zqrb.cn', "https://www.z01.com"]
-        urls = ["https://www.z01.com"]
+        #urls = ["https://www.z01.com"]
+        urls = ["http://zqrb.cn"]
         for url in urls:
             page = Page("title_from_db", "kw_from_db", "desc_from_db")
-            page.domain = url
             page.isIndexPage = True
-
-            s_path = url.replace("http://", "") # TODO:"zqrb.cn"生产环境中从配置中导入
-            s_path = url.replace("https://www.", "") # TODO:"zqrb.cn"生产环境中从配置中导入
-
-            page.rootPath = join(self.file_save_root, s_path)  # TODO:"zqrb.cn"生产环境中从配置中导入
-            page.pageLimit = 5  # TODO:每个栏目的页面数从配置中导入
-            page.pageDeep = 2  # TODO：蜘蛛爬行深度从配置中导入
+            ext_domain = extract(url) # 解析源网站域名
+            page.domain = "{}.{}".format(ext_domain.domain, ext_domain.suffix) # 记录当前蜘蛛爬取的主域名
+            ext_domain = extract("http://www.ceshi.com") # 解析待镜像的域名结构，待镜像的域名从配置中读取
+            save_path = "{}.{}".format(ext_domain.domain, ext_domain.suffix)
+            page.rootPath = join(self.file_save_root, save_path)  #镜像站点文件保存的目录
 
             request = Request(url, callback=self.parse)
             request.meta['page'] = page
@@ -88,12 +86,9 @@ class MirrorSpider(Spider):
         保存内页，并获取内页的url到集合
         """
         page_index = response.meta['page']
-        page_inner = Page('inner_title', 'inner_keywords',
-                          'inner_description')  # TODO:生产环境中从配置导入
+        page_inner = Page('inner_title', 'inner_keywords', 'inner_description')  # TODO:生产环境中从配置导入
         page_inner.isIndexPage = False
         page_inner.domain = page_index.domain
-        page_inner.pageDeep = page_index.pageDeep
-        page_inner.pagePath = page_index.pagePath
         page_inner.rootPath = page_index.rootPath
 
         # 解析内页html
