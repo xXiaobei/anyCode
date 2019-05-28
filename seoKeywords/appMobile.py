@@ -7,7 +7,7 @@
 # 3：调整逻辑页数判断去掉，转为调用百度nlp接口判断当前关键词与所搜结果短文本的相似度
 """
 
-import os, sys
+import os, sys, signal
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, WebDriverException
@@ -22,6 +22,7 @@ APP_ID = '16170203'
 APP_KEY = 'TQRGlbD2wk9RiG7B48GmHXhV'
 SECRET_KEY = 'LM5F0BGMCnyRyoiQvMPr6ygoyPmq3OqB'
 nlp_client = AipNlp(APP_ID, APP_KEY, SECRET_KEY)
+
 
 class MobileKeywords:
     """
@@ -40,7 +41,7 @@ class MobileKeywords:
         self.dbHelper = None  # 数据库辅助类
         self.retry_counter = 1  # 失败重试次数
         self.title_counter = 5  # 关键词在搜索结果中出现的次数
-        self.kw_score = 6.1 # 关键词敏感度阀值
+        self.kw_score = 6.1  # 关键词敏感度阀值
         self.page_keywords = 0  # 关键词搜索结果总页
         self.total_keywords = 0  # 总关键词记数
         self.file_save_path = ""  # 关键词文件保存路径
@@ -55,10 +56,11 @@ class MobileKeywords:
         初始化关键词保存相关
         """
         try:
-            file_path = '/home/bbei/Project/anyCode/seoKeywords' #'/home/documents/seobaidu/baiduci/'
+            file_path = '/home/bbei/Project/anyCode/seoKeywords'  #'/home/documents/seobaidu/baiduci/'
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
-            file_name = os.path.join(file_path, u"{}.txt".format(self.keywords))
+            file_name = os.path.join(file_path,
+                                     u"{}.txt".format(self.keywords))
             self.file_save_path = file_name
             print(u"-----------------------------------------------------")
             print(u"==关键词保存路径为：{}".format(self.file_save_path))
@@ -74,7 +76,7 @@ class MobileKeywords:
         opt = Options()
         prefs = {
             'profile.default_content_setting_values': {
-                'images': 2 # 禁止加载图片 1为开启
+                'images': 2  # 禁止加载图片 1为开启
                 #'javascript': 2 # 禁止运行js 1为开启
             }
         }
@@ -88,8 +90,7 @@ class MobileKeywords:
         #解决DevToolsActivePort文件不存在的报错
         opt.add_argument('--no-sandbox')
         # 针对selenium在centos7 server中的配置
-        opt.add_argument(
-            '--disable-dev-shm-usage')
+        opt.add_argument('--disable-dev-shm-usage')
         # 自定义请求头
         opt.add_argument(
             "user-agent='Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0'"
@@ -122,13 +123,15 @@ class MobileKeywords:
         try:
             if self.retry_counter > 1:
                 self.browser.quit()
-                self.browser = webdriver.Chrome(chrome_options=self.init_driver())
-                self.wait = WebDriverWait(self.browser, self.seconds)                
+                self.browser = webdriver.Chrome(
+                    chrome_options=self.init_driver())
+                self.wait = WebDriverWait(self.browser, self.seconds)
             self.browser.get(req_url)
             return True
         except TimeoutException as ex:
             if self.retry_counter <= 1:
-                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg, self.retry_counter))
+                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg,
+                                                       self.retry_counter))
                 self.retry_counter += 1
                 self.request_url(req_url, tipMsg)
             else:
@@ -253,21 +256,25 @@ class MobileKeywords:
                     continue
                 if u"相关搜索" in title.text:
                     continue
-                if self.title_counter > 0: # 词意分析
+                if self.title_counter > 0:  # 词意分析
                     str_xpath = "//div/article/header/div/a/h3"
                     res_title = self.ele_exist(str_xpath, "xpath", True)
                     if res_title is None:
                         continue
                     try:
-                        res_nlp = nlp_client.simnet(self.keywords, res_title.text)
+                        res_nlp = nlp_client.simnet(self.keywords,
+                                                    res_title.text)
                     except UnicodeEncodeError as ex:
-                        print(u"=== {} 编码转换错误，词意分析出错，继续下个关键词...".format(self.keywords))
+                        print(u"=== {} 编码转换错误，词意分析出错，继续下个关键词...".format(
+                            self.keywords))
                         break
                     except UnicodeDecodeError as ex:
-                        print(u"=== {} 编码解码错误，词意分析出错，继续下个关键词...".format(self.keywords))
+                        print(u"=== {} 编码解码错误，词意分析出错，继续下个关键词...".format(
+                            self.keywords))
                         break
                     except:
-                        print(u"=== {} 接口调用出错，继续下个关键词...".format(self.keywords))
+                        print(u"=== {} 接口调用出错，继续下个关键词...".format(
+                            self.keywords))
                         break
                     if 'score' in res_nlp:
                         if (res_nlp['score'] * 10) > self.kw_score:
@@ -311,13 +318,13 @@ class MobileKeywords:
 
         while len_queue > 0:
             self.keywords = queue.pop(0)  # 取出第一个关键词
-            
+
             # 判断当前关键词状态，并获取相关词
             r_keywords = self.is_valid_keywords()
             # 添加关键词到待处理队列
             for kw in r_keywords["sub_keywords"]:
                 is_past_keywords = False  # 是否存在过滤词
-                is_includ_keywords = False  # 是否包含指定词                
+                is_includ_keywords = False  # 是否包含指定词
                 # 关联词不能为空
                 if kw.strip() == "":
                     continue
@@ -370,6 +377,19 @@ class MobileKeywords:
             len(self.res_keywords["sub_keywords"]),
             str(5 - self.title_counter), is_valid_kw))
 
+    def shell_exit(self, signal_num, frame):
+        """
+        脚本被强制终止执行
+        :param signal_num:参数名自定义，但是必须存在一个用于接受signal信号的参数
+        :param frame:必须存在
+        """
+        try:
+            self.browser.quit()  # 回收webdriver 资源            
+            print(u"本次共采集关键词:{} 个, 文件保存路径为：{}".format(self.total_keywords, self.file_save_path))
+            os._exit(0)
+        except:
+            pass
+
 
 if __name__ == "__main__":
     seconds = 10
@@ -402,6 +422,8 @@ if __name__ == "__main__":
     mk.browser.set_page_load_timeout(seconds)  # 页面超时时间为10S
     # mk.dbHelper = sqlhelper
     mk.init_save_info()
+    # 加入信号处理模块，监测程序是否被强制终止(ctrl+c)
+    signal.signal(signal.SIGINT, mk.shell_exit)
     print(u"==开始采集关键词 %s" % keywords)
     mk.searching()
     mk.browser.quit()
