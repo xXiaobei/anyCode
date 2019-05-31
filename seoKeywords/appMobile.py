@@ -56,7 +56,7 @@ class MobileKeywords:
         初始化关键词保存相关
         """
         try:
-            file_path = '/home/bbei/Project/anyCode/seoKeywords'  #'/home/documents/seobaidu/baiduci/'
+            file_path = '/home/documents/seobaidu/baiduci/'  #'/home/bbei/Project/anyCode/seoKeywords'
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
             file_name = os.path.join(file_path,
@@ -145,8 +145,7 @@ class MobileKeywords:
         try:
             # 添加encoding='utf-8'避免出现UnicodeEncodeError错误
             with open(self.file_save_path, 'a+', encoding='utf-8') as f:
-                s = "\n".join(s for s in kw_data)
-                f.write(s)
+               f.writelines(kw_data)
             kw_data.clear()  # 清空，为下次准备
         except UnicodeEncodeError as ex:
             print(u"===关键词写入文件失败,继续下一个关键词...")
@@ -354,7 +353,7 @@ class MobileKeywords:
                 if self.keywords != "":
                     self.total_keywords += 1
                     #sql_datas.append((None, self.keywords))
-                    file_datas.append(self.keywords)
+                    file_datas.append(self.keywords + "\n")
                 # 写入文件 2 个词一写，数据库暂时不考虑
                 if self.total_keywords % 2 == 0:
                     self.write_file(file_datas)
@@ -397,21 +396,20 @@ if __name__ == "__main__":
 
     #keywords,f_keywords,i_keywords 由.sh提供参数
     f_keywords, i_keywords = [], []
-    # keywords = sys.argv[1]
-    # if keywords.strip() == "":
-    #     print(u"主关键词不能为空,请重试...")
-    #     os._exit(0)
-    # if sys.argv[2].strip() != "_fkw_":
-    #     if "," in sys.argv[2]:
-    #         f_keywords = sys.argv[2].split(",")
-    #     else:
-    #         f_keywords.append(sys.argv[2])
-    # if sys.argv[3].strip() != "_iKw_":
-    #     if "," in sys.argv[3]:
-    #         i_keywords = sys.argv[3].split(",")
-    #     else:
-    #         i_keywords.append(sys.argv[3].strip())
-    keywords = '复试'
+    keywords = sys.argv[1]
+    if keywords.strip() == "":
+        print(u"主关键词不能为空,请重试...")
+        os._exit(0)
+    if sys.argv[2].strip() != "_fkw_":
+        if "," in sys.argv[2]:
+            f_keywords = sys.argv[2].split(",")
+        else:
+            f_keywords.append(sys.argv[2])
+    if sys.argv[3].strip() != "_iKw_":
+        if "," in sys.argv[3]:
+            i_keywords = sys.argv[3].split(",")
+        else:
+            i_keywords.append(sys.argv[3].strip())    
 
     print(u"====================================")
     # print(u"==初始化数据库")

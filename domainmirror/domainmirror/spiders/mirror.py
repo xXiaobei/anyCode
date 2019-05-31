@@ -4,7 +4,8 @@ from os.path import join
 from scrapy import Request, Spider
 from tldextract import extract
 from scrapy.utils.project import get_project_settings
-from domainmirror.helperfunctions import parse_html_url, Page, save_file
+from domainmirror.mongohelper import *
+from domainmirror.helperfunctions import parse_html_url, Page, save_file, get_spider_conf
 
 
 class MirrorSpider(Spider):
@@ -22,6 +23,9 @@ class MirrorSpider(Spider):
 
     # 文件保存路径
     file_save_root = pro_setting['FILE_STORE']
+
+    # 链接数据库mongoDB
+    dbClient = mongoHelper()
 
     # 重写父类的函数,spider开始爬行执行此函数
     def start_requests(self):
@@ -42,48 +46,41 @@ class MirrorSpider(Spider):
             request.meta['page'] = page
             yield request
 
+        # 释放数据库资源
+        self.dbClient.db_close()
+
     def parse(self, response):
         """
         解析首页
         """
         url = response.url
         page = response.meta['page']
+        url = str.format("{}/index.html", url)
 
-        if page.isIndexPage:
-            url = str.format("{}/index.html", url)
-
+        # 获取要过滤的栏目名称
+        catNames = self.dbClient.icn_get_all()
+        page.filter_cate = [cn["name"] for cn in catNames]
+        # 获取栏目模板
+        page.template_cat = self.dbClient.pt_by_type("list")
+        # 获取内容页模板
+        page.template_page = self.dbClient.pt_by_type("page")
         # 解析首页html
         parse_html_url(response, page)
-
         # 保存首页文件
-        save_file(page, url)
-
-        # 获取首页所有链接
-        # page.domainUrls.extend(page.urls)
-
-        # # 以首页为起始，爬行整个网站
-        # while page.domainUrls:
-        #     inner_page_url = page.domainUrls.pop(0)
-        #     request = Request(inner_page_url, callback=self.parse_inner)
-        #     # request = Request(inner_page_url, callback=self.parse)
+        # save_file(page, url)
+        # 爬取首页所有文件，并保存
+        # for url in page.urls:
+        #     request = Request(url, callback=self.parse_inner)
         #     request.meta['page'] = page
-        #     # c_url_schema = urlparse(inner_page_url)
-        #     # dir_name = dirname(page.rootPath + dirname(c_url_schema.path))
-        #     # if dir_name in page.categoryPages:
-        #     #     if page.categoryPages[dir_name] > page.pageLimit:
-        #     #         continue
-        #     #     # print(u"============================= {}: 页面数： {}".format(
-        #     #     # dir_name, page.categoryPages[dir_name]))            
         #     yield request
-        #     page.domainUrlSeen.add(inner_page_url)
-        for url in page.urls:
-            request = Request(url, callback=self.parse_inner)
-            request.meta['page'] = page
-            yield request
+        # 保存站点的采集规则  ???? 测试？？？？
+        s_conf = get_spider_conf(page)
+        if s_conf:
+            self.dbClient.insert_category(s_conf, page.domain)
 
     def parse_inner(self, response):
         """
-        保存内页，并获取内页的url到集合
+        保存内页
         """
         page_index = response.meta['page']
         page_inner = Page('inner_title', 'inner_keywords', 'inner_description')  # TODO:生产环境中从配置导入
@@ -96,10 +93,3 @@ class MirrorSpider(Spider):
 
         # 保存内页html文件,并记录当前路径页面统计信息
         save_file(page_inner, response.url)
-
-        # for inner_url in page_inner.urls:
-        #     request = Request(inner_url, callback=self.parse_inner)
-        #     request.meta['page'] = page_index
-        #     yield request
-        # 添加当前页面的url到队列中
-        #page_index.domainUrls.extend(page_inner.urls)

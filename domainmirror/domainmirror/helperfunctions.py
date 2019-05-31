@@ -30,12 +30,12 @@ class Page:
 
     # 是否为首页
     isIndexPage = False
+    # 站点域名
+    domain = ""
     # 站点更目录
     rootPath = ""
-    # 站点页面目录
-    pagePath = set()
-    # 记录每个文件路径下的文件数（对应页面数限制）
-    categoryPages = {}
+    # 站点栏目信息
+    categorys = {}
     # urls 为列表，记录当前页面所有有效的href
     urls = []
     # domainUrls 为当前站点所有的有效页面（url）
@@ -45,16 +45,31 @@ class Page:
     # 当前网站的所有的动态链接，以及每个动态链接对应的静态链接
     # 用于将动态链接静态化
     dynamic_urls = []
-    # 每个栏目页面数目限制
-    pageLimit = 0
-    # 站点域名
-    domain = ""
+    # 要过滤的栏目名称（从数据库中获取）
+    filter_cate = []
+    # 栏目的模板页
+    template_cat = ""
+    # 内容页的模板
+    template_page = ""
 
     def __init__(self, title, kw, desc, content=""):
-        self.title = title
-        self.keywords = kw
-        self.description = desc
+        self.title = title  # seo title
+        self.keywords = kw  # seo keywords
+        self.description = desc  # seo description
         self.content = content
+
+
+class Category:
+    """
+    栏目相关信息
+    """
+
+    def __init__(self, c_path, c_keywords, c_template, c_template_arc, c_name):
+        self.name = c_name
+        self.path = c_path
+        self.keywords = c_keywords
+        self.template = c_template
+        self.template_arc = c_template_arc
 
 
 def node_to_root(rootNode, curNode, deepNode, urlNode):
@@ -120,6 +135,24 @@ def append_sub_node(listCategory, url):
     node_to_root(root_node, root_node, 2, url_category)
 
 
+def url_root_path(url, page):
+    """
+    根据配置获取当前url的根目录
+    :param url: 待确定根目录的url
+    :param page: 当前页面的配置
+    """
+    dist_path = "/"  # 最终目录以根目录开始
+    url_path = urlparse(url).path
+    each_path = url_path.split('/')
+    len_each_path = len(each_path)
+    if len_each_path < 2:
+        return ""
+    # 每个链接的根目录默认为网站根目录的下一个目录
+    for i in range(1, 2):
+        dist_path += each_path[i] + "/"
+    return dist_path
+
+
 def save_file(page, url):
     """
     文件写入本地
@@ -147,36 +180,18 @@ def save_file(page, url):
             file_name = "index.html"
         file_full_name = join(file_path, file_name)
 
-        # 当前目录文件数量限制,排除根目录
-        res_file_path = dirname(dirname(file_full_name))
-        # 初始化目录的文件记数,排除根目录
-        if (res_file_path not in page.categoryPages
-                and res_file_path != page.rootPath):
-            page.categoryPages[res_file_path] = 0
-
         with codecs.open(file_full_name, 'w+', 'utf-8') as file:
             file.write(page.content)
-            if res_file_path != page.rootPath:
-                page.categoryPages[res_file_path] += 1
-        # if page.categoryPages[res_file_path] < page.pageLimit:
-        #     # 写文件，并记录当前目录记数
-        #     with codecs.open(file_full_name, 'w+', 'utf-8') as file:
-        #         file.write(page.content)
-        #         if res_file_path != page.rootPath:
-        #             page.categoryPages[res_file_path] += 1
+
     except OSError as ex:
         print(u"文件写入失败 %s " % url_schema.path + str(ex))
-
-    # 更改首页标识
-    if page.isIndexPage:
-        page.isIndexPage = False  # 首页只会出现一次
 
 
 def parse_html_url(response, page):
     """
     解析html中的url
     :param response: 蜘蛛爬行的结果
-    :param page 自定义数据临时存储类
+    :param page: 自定义数据临时存储类
     """
     htmls = response.text
     link_href_seen = set()
@@ -184,8 +199,6 @@ def parse_html_url(response, page):
     links_href = response.xpath("//@href").getall()
     links_src = response.xpath("//@src").getall()
     dynamic_urls = [".php", ".jsp", ".aspx", ".asp"]
-
-    #TODO:TDK 处理逻辑
 
     # 当前站点的所有资源路径改为绝对路径
     for src in links_src:
@@ -198,6 +211,7 @@ def parse_html_url(response, page):
 
     # 过滤href供spider爬取
     for href in links_href:
+        org_url = href  #记录原始的href
         url_schema = urlparse(href)
 
         # 排除一些无效链接
@@ -228,26 +242,23 @@ def parse_html_url(response, page):
                     url_schema.path + str(timespan) + ".html"
                 })
 
-        # 如果当前页面是首页，则构建改网站的物理架构
-        # if page.isIndexPage:
-        #     append_sub_node(page.category, href)
-
-        # 判断当前url是否为有效url,首页中的链接不用校验
-        if is_valid_url(page, href.strip()) or page.isIndexPage:
+        # 判断当前url是否为有效url
+        if is_valid_url(page, href.strip()):
             page.urls.append(href.strip())
 
-            # 替换测试域名
+            # 替换测试域名(镜像域名)
             if page.domain in href:
                 rep_href = href.replace(page.domain, "mirrort.com")
                 htmls = htmls.replace(href, rep_href)
 
-    # 当前页面如果为首页，则检索出所有的栏目页
-    # if page.isIndexPage:
-    #     for url in page.urls:
-    #         cat_path = url_root_path(url, page)
-    #         if cat_path != "":
-    #             page.pagePath.add(cat_path)
+            # 检索首页中所有栏目和栏目名称（只检索顶级栏目）
+            if page.isIndexPage:
+                get_category_name(org_url, response, page)
+
+    # 赋值处理后的html
     page.content = htmls
+    # 修改首页标识（只有一个首页）
+    page.isIndexPage = False
 
 
 def is_valid_url(page, cur_url):
@@ -260,8 +271,7 @@ def is_valid_url(page, cur_url):
     1：在当前目录下，页面总数已超过设定值
     2：非本站的url
     3：url的path为根目录的/
-    4：url所在的顶级目录没有出现在首页的
-    5：已爬取过的不再爬取
+    4：已爬取过的不再爬取
     """
 
     res_check = True
@@ -281,37 +291,64 @@ def is_valid_url(page, cur_url):
     file_name = basename(c_url_schema.path).lower()
     if file_name in invalid_file_ext:
         return False
-    # 当前url的顶级栏目没有出现在首页则不爬取
-    each_path = c_url_schema.path.split("/")
-    len_each_path = len(each_path)
-    if len_each_path > 2:
-        r_path = url_root_path(cur_url, page)
-        if r_path not in page.pagePath:
-            return False
     # 爬取过的url不再爬取
     if cur_url in page.domainUrlSeen:
         return False
-    # 当前url所属的栏目
-    # dir_name = dirname(page.rootPath + dirname(c_url_schema.path))
-    # if dir_name in page.categoryPages and dir_name != page.rootPath:
-    #     if page.categoryPages[dir_name] > page.pageLimit:
-    #         return False
     return res_check
 
 
-def url_root_path(url, page):
+def get_category_name(url, res, page):
     """
-    根据配置获取当前url的根目录
-    :param url: 待确定根目录的url
-    :param page: 当前页面的配置
+    获取顶级栏目的名称
+    :param url:待检索的url
+    :param res:网页源码
     """
-    dist_path = "/"  # 最终目录以根目录开始
-    url_path = urlparse(url).path
-    each_path = url_path.split('/')
-    len_each_path = len(each_path)
-    if len_each_path < 2:
-        return ""
-    # 每个链接的根目录默认为网站根目录的下一个目录
-    for i in range(1, 2):
-        dist_path += each_path[i] + "/"
-    return dist_path
+    url = url.strip()
+    u_path = urlparse(url).path
+    ary_path = u_path.split('/')
+    if not ary_path:
+        return None
+
+    # 只检索顶级栏目（从根目录开始）
+    l_path = len(ary_path)
+    if l_path > 3:
+        return None
+
+    lnk_xpath = '//a[contains(@href,"{}")]'.format(url)
+    ele_xpath = res.selector.xpath(lnk_xpath)
+    if not ele_xpath:
+        return None
+
+    ele_text = ele_xpath[0].root.text
+
+    if not ele_text:
+        return None
+    if ele_text.strip() == "":
+        return None
+
+    # 栏目名词存在过滤词的不处理
+    for cn in page.filter_cate:
+        if cn in ele_text:
+            return None
+
+    # 重复的栏目名不处理
+    for cn in page.categorys:
+        if ele_text.strip() == page.categorys[cn]:
+            return None
+
+    page.categorys[u_path] = ele_text.strip()
+    return True
+
+
+def get_spider_conf(page):
+    """
+    生存当前站点的采集规则
+    :param page:当前站点的抽象
+    """
+    confs = []
+    for c in page.categorys:
+        confs.append(
+            Category(c, "kw", page.template_cat, page.template_page,
+                     page.categorys[c]))
+    return confs
+
