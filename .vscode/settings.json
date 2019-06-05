@@ -1,6 +1,6 @@
 {
     "python.pythonPath": "/home/bbei/envPython/anycode/bin/python",
-    "editor.fontSize": 15,
+    "editor.fontSize": 16,
     "python.formatting.provider": "yapf",
     "python.formatting.yapfPath": "/home/bbei/envPython/anycode/bin/yapf",
     "python.linting.pylintArgs": [
