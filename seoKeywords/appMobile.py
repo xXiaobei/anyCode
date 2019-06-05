@@ -279,27 +279,26 @@ class MobileKeywords:
                         if (res_nlp['score'] * 10) > self.kw_score:
                             self.title_counter -= 1
 
-        # 判断当前关键词搜索结果总页数是否大于10页
-        # 当前逻辑暂时停用
-        # str_xpath = "/html/body/div[3]/div[2]/div[4]/div/a"
-        # paging_url = self.ele_exist(str_xpath, "xpath", True)
-        # if paging_url is not None:
-        #     paging_url = paging_url.get_attribute("href").replace(
-        #         "pn=10", "pn=90")
-        #     tip_msg = "拉取关键词翻页信息超时"
-        #     if self.request_url(paging_url, tip_msg) is None:  # 拉取关键词翻页信息
-        #         print(u"=== %s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
-        #         return self.res_keywords
-        #     str_xpath = "/html/body/div[3]/div[2]/div[4]/div/div[2]/span"
-        #     res_page = self.ele_waiting(str_xpath, "xpath", True, False)
-        #     if res_page is not None:
-        #         res_page_num = res_page.text.split(" ")[1]
-        #         if res_page_num != "":
-        #             self.page_keywords = int(res_page_num.strip())
+            # 判断当前关键词搜索结果总页数是否大于10页
+            str_xpath = "/html/body/div[3]/div[2]/div[4]/div/a"
+            paging_url = self.ele_exist(str_xpath, "xpath", True)
+            if paging_url is not None:
+                paging_url = paging_url.get_attribute("href").replace(
+                    "pn=10", "pn=90")
+                tip_msg = "拉取关键词翻页信息超时"
+                if self.request_url(paging_url, tip_msg) is None:  # 拉取关键词翻页信息
+                    print(u"=== %s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
+                    return self.res_keywords
+                str_xpath = "/html/body/div[3]/div[2]/div[4]/div/div[2]/span"
+                res_page = self.ele_waiting(str_xpath, "xpath", True, False)
+                if res_page is not None:
+                    res_page_num = res_page.text.split(" ")[1]
+                    if res_page_num != "":
+                        self.page_keywords = int(res_page_num.strip())
 
-        len_relation_kw = len(self.res_keywords["sub_keywords"])
-        if self.title_counter <= 0 and len_relation_kw > 0:
-            self.res_keywords["valid"] = True
+            len_relation_kw = len(self.res_keywords["sub_keywords"])
+            if self.title_counter <= 0 and len_relation_kw > 0:
+                self.res_keywords["valid"] = True
 
         return self.res_keywords
 
