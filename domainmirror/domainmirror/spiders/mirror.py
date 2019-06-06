@@ -21,7 +21,7 @@ class MirrorSpider(Spider):
     # 读取配置文件
     pro_setting = get_project_settings()
 
-    # 文件保存路径
+    # 文件保存路径  
     file_save_root = pro_setting['FILE_STORE']
 
     # 链接数据库mongoDB
@@ -36,9 +36,9 @@ class MirrorSpider(Spider):
         for url in urls:
             page = Page("title_from_db", "kw_from_db", "desc_from_db")
             page.isIndexPage = True
-            ext_domain = extract(url) # 解析源网站域名
-            page.domain = "{}.{}".format(ext_domain.domain, ext_domain.suffix) # 记录当前蜘蛛爬取的主域名
-            ext_domain = extract("http://www.ceshi.com") # 解析待镜像的域名结构，待镜像的域名从配置中读取
+            ext_domain = extract(url)  # 解析源网站域名
+            page.domain = "{}.{}".format(ext_domain.domain, ext_domain.suffix)  # 记录当前蜘蛛爬取的主域名
+            ext_domain = extract("http://www.ceshi.com")  # 解析待镜像的域名结构，待镜像的域名从配置中读取
             save_path = "{}.{}".format(ext_domain.domain, ext_domain.suffix)
             page.rootPath = join(self.file_save_root, save_path)  #镜像站点文件保存的目录
 
@@ -75,15 +75,17 @@ class MirrorSpider(Spider):
         #     yield request
         # 保存站点的采集规则  ???? 测试？？？？
         s_conf = get_spider_conf(page)
-        if s_conf:
-            self.dbClient.insert_category(s_conf, page.domain)
+        # if s_conf:
+        #     self.dbClient.insert_category(s_conf, page.domain)
+        #  
 
     def parse_inner(self, response):
         """
         保存内页
         """
         page_index = response.meta['page']
-        page_inner = Page('inner_title', 'inner_keywords', 'inner_description')  # TODO:生产环境中从配置导入
+        page_inner = Page('inner_title', 'inner_keywords',
+                          'inner_description')  # TODO:生产环境中从配置导入
         page_inner.isIndexPage = False
         page_inner.domain = page_index.domain
         page_inner.rootPath = page_index.rootPath
