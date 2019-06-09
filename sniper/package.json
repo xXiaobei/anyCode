@@ -6,6 +6,8 @@
     "start": "nodemon ./bin/www"
   },
   "dependencies": {
+    "@types/jquery": "^3.3.29",
+    "@types/mongoose": "^5.5.5",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "depd": "^2.0.0",
@@ -14,8 +16,9 @@
     "gulp": "^4.0.2",
     "http-errors": "~1.6.3",
     "jquery": "^3.4.1",
+    "mongodb": "^3.2.7",
+    "mongoose": "^5.5.14",
     "morgan": "~1.9.1",
-    "nodemon": "^1.19.1",
-    "typings": "^2.1.1"
+    "nodemon": "^1.19.1"
   }
 }

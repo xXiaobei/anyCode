@@ -4,8 +4,7 @@
     <p class="lead">Subtitle１</p>
 </div>
 <ul id="mainMenu" class="nav nav-tabs">
-    <li class="active"><a href="#home" data-toggle="tab">面板</a></li>
-    <li><a href="#main_keywords" data-toggle="tab">主词管理</a></li>
-    <li><a href="#includ_keywords" data-toggle="tab">包含词管理</a></li>
-    <li><a href="#filter_keywords" data-toggle="tab">过滤词管理</a></li>
+    <% menu.forEach(ele => { %>
+    <li class="<%= ele.active %>"><a href="<%- ele.url %>"><%= ele.name; %></a></li>    
+    <% }); %>
 </ul>

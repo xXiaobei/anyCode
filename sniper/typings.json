@@ -1,0 +1,7 @@
+{
+  "name": "sniper",
+  "resolution": "typings/",
+  "globalDependencies": {
+    "jquery": "github:DefinitelyTyped/DefinitelyTyped/jquery/index.d.ts"
+  }
+}

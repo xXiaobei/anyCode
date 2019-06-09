@@ -4,12 +4,10 @@
 
 /*公共逻辑 */
 var comman = {
-  topMenu:function(){
-    $("#mainMenu").bind("click",function(){
-      
-    });
+  topMenu: function() {
+    
   }
-}
+};
 
 /*面板逻辑 */
 var home_page = {};
