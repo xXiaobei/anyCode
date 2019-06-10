@@ -1,12 +1,12 @@
 {
-  "compilerOptions": {
-    "target": "ES6",
-    "module": "commonjs",
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true
-  },
-  "exclude": [
-    "node_modules",
-    "**/node_modules/*"
-  ]
+    "compilerOptions": {
+        "target": "ES6",
+        "module": "commonjs",
+        "allowJs": true,
+        "allowSyntheticDefaultImports": true
+    },
+    "exclude": ["node_modules", "**/node_modules/*"],
+    "typeAcquisition": {
+        "include": ["jquery", "mongodb", "mongoose", "node"]
+    }
 }
