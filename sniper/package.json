@@ -20,6 +20,7 @@
     "mongodb": "^3.2.7",
     "mongoose": "^5.5.14",
     "morgan": "~1.9.1",
-    "nodemon": "^1.19.1"
+    "nodemon": "^1.19.1",
+    "redis": "^2.8.0"
   }
 }

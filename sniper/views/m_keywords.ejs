@@ -6,9 +6,51 @@
     <div class="container" style="margin-top: -49px;">
         <% include ./partials/header %>
 
-        <h1>hello i'm main keywords page...</h1>
+        <button id="btn_insert" type="button" class="btn btn-primary pull-right " style="margin: 5px;">新增</button>
 
-    </div>
+        <table class="table table-light" id="tab_main">
+            <thead class="thead-light" style="border-top: 1px solid #ddd;">
+                <tr>
+                    <th>主词</th>
+                    <th style="width: 136px;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="tab_body">
+                <tr>
+                    <td colspan="2">
+                        数据加载中...请稍后！
+                    </td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="2" id="tab_foot"></th>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="modal fade" id="mdl_mkw" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                        <h4 class="modal-title" id="myModalLabel">新增主关键词</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="my-input">关键词名：</label>
+                            <input class="form-control" type="text" id="txt_mkw_name">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                        <button type="button" class="btn btn-primary" id="btn_save">保存</button>
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal -->
+
+        </div>
 </body>
 <% include ./partials/footer %>
 
