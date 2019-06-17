@@ -30,12 +30,13 @@ var pagination = {
         for (let i = 0; i < data.length; i++) {
             // 生成面板列表
             if ($("#main_page").length > 0) {
-                //alert alert-success style="padding:5px;margin-bottom:0px;"
                 tr_html += "<tr><td>" + data[i].name + "</td>";
-                tr_html += '<td><div class="">...</div></td>';
+                tr_html +=
+                    '<td><div class="" style="padding:5px;margin-bottom:0px;">...</div></td>';
                 tr_html += '<td><button type="button" class="btn btn-default" title="查看包含词">';
                 tr_html += '<span class="glyphicon glyphicon-pushpin"></span> </button>';
-                tr_html += '<button type="button" class="btn btn-primary" title="查看已采集的词">';
+                tr_html +=
+                    '<button type="button" class="btn btn-primary" title="查看已采集的词" onclick="home_page.result(this)">';
                 tr_html += '<span class="glyphicon glyphicon-eye-open"></span> </button>';
                 tr_html +=
                     '<button type="button" class="btn btn-success" title="开始采集" onclick="home_page.work(this)">';
@@ -214,11 +215,16 @@ var pagination = {
 /*面板逻辑 */
 var home_page = {
     /**
+     * 定义消息通讯
+     */
+    socket: null,
+    /**
      * 开始采集关键词
      */
     work: function(e) {
         let url = "/work";
         const jq_ele = $(e);
+        const channel = $(e).data("channel") || "";
         const p_ele = $(e)
             .parent()
             .parent();
@@ -227,11 +233,14 @@ var home_page = {
             .eq(0)
             .text()
             .trim();
+        if ($(e).data("url")) {
+            url = $(e).data("url");
+        }
         $.ajax({
             type: "POST",
             url: url,
             dataType: "JSON",
-            data: { kw: kw },
+            data: { kw: kw, channel: channel },
             success: function(data) {
                 if (data.flg == 0) {
                     if (!jq_ele.data("start")) {
@@ -241,20 +250,72 @@ var home_page = {
                             .addClass("btn-danger")
                             .html('<span class="glyphicon glyphicon-stop"></span> ');
                         jq_ele.attr("title", "停止采集");
+                        $(e).data("url", "/offwork");
+                        $(e).data("channel", data.channel); //绑定消息频道号
+                        home_page.socket.on("pullMessage", data => {
+                            console.log(data);
+                        });
                     } else {
-                        url = "/offwork";
                         jq_ele
                             .removeData("start")
                             .removeClass("btn-danger")
                             .addClass("btn-success")
                             .html('<span class="glyphicon glyphicon-play"></span> ');
                         jq_ele.attr("title", "开始采集");
+                        $(e).removeData("url");
                     }
+                    //home_page.displayTips(p_ele, kw);
                 } else {
                     console.log(data.msg);
                 }
             }
         });
+    },
+    /**
+     * 显示当前关键词的采集进度
+     */
+    displayTips: function(ele, kw) {
+        let interval = 1000; //魂环间隔为1000ms
+        if (!ele) return false;
+        let ele_tips = $(ele)
+            .find("td")
+            .eq(1)
+            .find("div");
+        if (ele_tips[0].className == "") {
+            ele_tips.addClass("alert alert-success");
+        }
+        let tips = setInterval(() => {
+            $.getJSON("/tips?kw=" + kw, data => {
+                ele_tips.text(data.msg);
+                if (data.flg == 1) clearInterval(tips);
+            });
+        }, interval);
+    },
+    /**
+     * 查看已采集的关键词
+     */
+    result: function(ele, kw) {
+        const client = io.connect("http://localhost:3999");
+        if (!client) return;
+        client.emit("pullMessage", "一肖一码", data => {
+            console.log(data);
+        });
+        // kw = "一肖一码";
+        // $.getJSON("/tips?kw=" + kw, data => {
+        //     if (!data.msg) return;
+        //     if (data.msg.startsWith("<")) {
+        //         if (data.msg.startsWith("<1>")) {
+        //             ele_tips.removeClass("alert-success").addClass("alert-warning");
+        //         }
+        //         if (data.msg.startsWith("<2>")) {
+        //             ele_tips.removeClass("alert-success").addClass("alert-danger");
+        //         }else{
+        //             ele_tips.addClass("alert-success");
+        //         }
+        //     }
+        //     ele_tips.text(data.msg);
+        //     if (data.flg == "stop") clearInterval(tips);
+        // });
     }
 };
 
@@ -375,8 +436,11 @@ $(function() {
     //分页初始化
     pagination.init();
 
+    //面板页逻辑
     if ($("#main_page").length > 0) {
+        home_page.socket = io.connect("http://localhost:3999");
     }
+    //主词逻辑
     if ($(".mkw_page").length > 0) {
         mkw_page.init();
     }

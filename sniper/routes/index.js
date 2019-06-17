@@ -1,19 +1,12 @@
-var express = require("express");
 var path = require("path");
+var express = require("express");
+var redisClient = require("redis");
+var redis_sub = require("../redis").redis;
 var menu = require("../models/menu");
 var pagination = require("../models/pagination");
 var m_main = require("../models/main");
-var router = express.Router();
 var spawn = require("child_process").spawn;
-var redis = require("redis");
-var redisClient = redis.createClient(); //默认localhost 没有登录验证
-
-/**
- * 判断redis是否登录成功
- */
-redisClient.on("ready", err => {
-    console.log("Redis Server working...");
-});
+var router = express.Router();
 
 /* GET home page. */
 router.get("/", function(req, res, next) {
@@ -57,12 +50,12 @@ router.post("/nextPage", function(req, res, next) {
 router.post("/work", function(req, res, next) {
     try {
         const kw = req.body.kw;
-        const tipMsg = "程序准备中...";
+        const channel = Date.now(); // 设置当前关键词的消息发布频道
         const env_path = "/home/bbei/Documents/pythonVenv/anycode/bin/python3";
         const py_path = path.join(path.dirname(__dirname), "sniper.py");
-        redisClient.hmset(kw, "status", "start", "msg", tipMsg);
-        const py_procss = spawn(env_path, [py_path, kw]);
-        res.send({ msg: "success", flg: 0 });
+        redis_sub.subscribe(channel); //redis 订阅消息频道
+        const py_procss = spawn(env_path, [py_path, kw, channel]);
+        res.send({ msg: "success", flg: 0, channel: channel });
     } catch (error) {
         res.send({ msg: "采集失败，请重试！" + error, flg: 1 });
     }
@@ -73,12 +66,26 @@ router.post("/work", function(req, res, next) {
  */
 router.post("/offwork", function(req, res, next) {
     try {
+        //链接到localhost，没有密码相关
+        const redis = redisClient.createClient();
         const kw = req.body.kw;
-        redisClient.hset(kw, "status", "stop");
+        const channel = req.body.channel;
+        redis.hset(kw, "status", "stop");
+        redis_sub.unsubscribe(channel); //取消消息频道订阅
         res.send({ msg: "", flg: 0 });
     } catch (error) {
         res.send({ msg: "停止错误，请重！", flg: 1 });
     }
+});
+
+/**
+ * 拉取关键词采集进度
+ */
+router.get("/tips", function(req, res, next) {
+    const params = req.query;
+    // redisClient.hvals(params["kw"], (err, res) => {
+    //     res.send({ msg: res[0], flg: res[1] });
+    // });
 });
 
 module.exports = router;

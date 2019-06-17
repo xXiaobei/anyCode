@@ -1,7 +1,8 @@
 # python 执行模块
 
 import os, sys
-import redis, pymongo
+import redis
+import pymongo
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, WebDriverException
@@ -31,6 +32,7 @@ class MobileKeywords:
     def __init__(self, tag_url, tag_kw, wait_seconds, f_kw, i_kw):
         self.url = tag_url
         self.redisClient = None  # redis客户端
+        self.channel = ""  # redis pub/sub 的频道
         self.seconds = wait_seconds
         self.keywords = tag_kw
         self.mainKeywords = tag_kw
@@ -49,7 +51,7 @@ class MobileKeywords:
 
     def init_save_info(self):
         try:
-            file_path = '/home/bbei/Public/baidu' 
+            file_path = '/home/bbei/Public/baidu'
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
             file_name = os.path.join(file_path, u"{}.txt".format(self.keywords))
@@ -74,9 +76,7 @@ class MobileKeywords:
         opt.add_argument('--disable-extensions')
         opt.add_argument('--no-sandbox')
         opt.add_argument('--disable-dev-shm-usage')
-        opt.add_argument(
-            "user-agent='Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0'"
-        )
+        opt.add_argument("user-agent='Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0'")
         return opt
 
     def status_rest(self):
@@ -96,15 +96,13 @@ class MobileKeywords:
         try:
             if self.retry_counter > 1:
                 self.browser.quit()
-                self.browser = webdriver.Chrome(
-                    chrome_options=self.init_driver())
+                self.browser = webdriver.Chrome(chrome_options=self.init_driver())
                 self.wait = WebDriverWait(self.browser, self.seconds)
             self.browser.get(req_url)
             return True
         except TimeoutException as ex:
             if self.retry_counter <= 1:
-                self.update_msg(u"<1>{}，正在尝试重试第 {} 次...".format(
-                    tipMsg, self.retry_counter))
+                self.update_msg(u"<1>{}，正在尝试重试第 {} 次...".format(tipMsg, self.retry_counter))
                 self.retry_counter += 1
                 self.request_url(req_url, tipMsg)
             else:
@@ -126,8 +124,7 @@ class MobileKeywords:
             cur_wait_type = EC.element_to_be_clickable
         try:
             if selector_type == "css":
-                ele = self.wait.until(
-                    cur_wait_type((By.CSS_SELECTOR, selector)))
+                ele = self.wait.until(cur_wait_type((By.CSS_SELECTOR, selector)))
             if selector_type == "xpath":
                 ele = self.wait.until(cur_wait_type((By.XPATH, selector)))
             return ele
@@ -164,10 +161,8 @@ class MobileKeywords:
 
         # 等待搜索框和搜索按钮加载完成
         try:
-            txt_search = self.wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "#index-kw")))
-            btn_search = self.wait.until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, "#index-bn")))
+            txt_search = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#index-kw")))
+            btn_search = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#index-bn")))
             # 发送关键词，等待搜索结果
             txt_search.send_keys(self.keywords)
             #btn_search.click()
@@ -211,21 +206,15 @@ class MobileKeywords:
                     if res_title is None:
                         continue
                     try:
-                        res_nlp = nlp_client.simnet(self.keywords,
-                                                    res_title.text)
+                        res_nlp = nlp_client.simnet(self.keywords, res_title.text)
                     except UnicodeEncodeError as ex:
-                        self.update_msg(
-                            u"<2>{} 编码转换错误，词意分析出错，继续下个关键词...".format(
-                                self.keywords))
+                        self.update_msg(u"<2>{} 编码转换错误，词意分析出错，继续下个关键词...".format(self.keywords))
                         break
                     except UnicodeDecodeError as ex:
-                        self.update_msg(
-                            u"<2>{} 编码解码错误，词意分析出错，继续下个关键词...".format(
-                                self.keywords))
+                        self.update_msg(u"<2>{} 编码解码错误，词意分析出错，继续下个关键词...".format(self.keywords))
                         break
                     except:
-                        self.update_msg(u"<2>{} 接口调用出错，继续下个关键词...".format(
-                            self.keywords))
+                        self.update_msg(u"<2>{} 接口调用出错，继续下个关键词...".format(self.keywords))
                         break
                     if 'score' in res_nlp:
                         if (res_nlp['score'] * 10) > self.kw_score:
@@ -235,21 +224,20 @@ class MobileKeywords:
         str_xpath = "/html/body/div[3]/div[2]/div[4]/div/a"
         paging_url = self.ele_exist(str_xpath, "xpath", True)
         if paging_url is not None:
-                paging_url = paging_url.get_attribute("href").replace(
-                    "pn=10", "pn=90")
-                tip_msg = "拉取关键词翻页信息超时"
-                if self.request_url(paging_url, tip_msg) is None:  # 拉取关键词翻页信息                    
-                    self.update_msg(u"<2>%s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
-                    return self.res_keywords
-                str_xpath = "/html/body/div[3]/div[2]/div[4]/div/div[2]/span"
-                res_page = self.ele_waiting(str_xpath, "xpath", True, False)
-                if res_page is not None:
-                    res_page_num = res_page.text.split(" ")[1]
-                    if res_page_num != "":
-                        self.page_keywords = int(res_page_num.strip())
+            paging_url = paging_url.get_attribute("href").replace("pn=10", "pn=90")
+            tip_msg = "拉取关键词翻页信息超时"
+            if self.request_url(paging_url, tip_msg) is None:  # 拉取关键词翻页信息
+                self.update_msg(u"<2>%s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
+                return self.res_keywords
+            str_xpath = "/html/body/div[3]/div[2]/div[4]/div/div[2]/span"
+            res_page = self.ele_waiting(str_xpath, "xpath", True, False)
+            if res_page is not None:
+                res_page_num = res_page.text.split(" ")[1]
+                if res_page_num != "":
+                    self.page_keywords = int(res_page_num.strip())
 
         len_relation_kw = len(self.res_keywords["sub_keywords"])
-        if self.title_counter <= 0 and len_relation_kw > 0 and self.page_keywords > 10:
+        if self.title_counter <= 0 and len_relation_kw > 0 and self.page_keywords >= 10:
             self.res_keywords["valid"] = True
 
         return self.res_keywords
@@ -266,10 +254,10 @@ class MobileKeywords:
         while len_queue > 0:
             # 取出第一个关键词
             self.keywords = queue.pop(0)
-            
+
             # 检测用户是否发送了停止命令
             proc_status = self.redisClient.hget(self.mainKeywords, "status")
-            if(proc_status.strip() == "stop"):
+            if (proc_status.strip() == "stop"):
                 break
 
             # 判断当前关键词状态，并获取相关词
@@ -326,39 +314,45 @@ class MobileKeywords:
 
     def update_msg(self, msg):
         self.redisClient.hset(self.mainKeywords, "msg", msg)
+        self.redis_pub_msg(msg)
 
     def print_tips(self, c_index, t_index):
         is_valid_kw = u"有效词"
         if not self.res_keywords["valid"]:
             is_valid_kw = u"无效词"
-        tipMsg = u"({} / {}) {}，相关词:{} 个,首页出现:{}次，结果是：{}。".format(
-            c_index, t_index, self.keywords,
-            len(self.res_keywords["sub_keywords"]),
-            str(5 - self.title_counter), is_valid_kw)
+        tipMsg = u"<0>({} / {}) {}，相关词:{} 个,首页出现:{}次，搜索结果共:{}页，结果是:{}。".format(c_index, t_index, self.keywords,
+                                                                               len(self.res_keywords["sub_keywords"]),
+                                                                               str(5 - self.title_counter),
+                                                                               str(self.page_keywords), is_valid_kw)
         self.redisClient.hset(self.mainKeywords, "msg", tipMsg)
+        self.redis_pub_msg(tipMsg)
 
     def shell_exit(self):
         try:
             self.browser.quit()  # 回收webdriver 资源
-            tipMsg = u"本次共采集关键词:{} 个, 文件保存路径为：{}".format(
-                self.total_keywords, self.file_save_path)
+            tipMsg = u"本次共采集关键词:{} 个, 文件保存路径为：{}".format(self.total_keywords, self.file_save_path)
             self.redisClient.hset(self.mainKeywords, "msg", tipMsg)
+            self.redis_pub_msg(tipMsg)
             os._exit(0)
         except:
             pass
 
+    def redis_pub_msg(self, msg):
+        self.redisClient.publish(self.channel, msg)
+
 
 if __name__ == "__main__":
+    # 提示消息等级 <0>正常 <1>警告 <2>错误
     seconds = 10
     url = "https://m.baidu.com/"
 
     try:
-        mkw = "财神报"#sys.argv[1]
+        mkw = sys.argv[1]
+        channel = sys.argv[2] # redis发布消息的频道
         kw_includs, kw_filter = [], []
         rclient = redis.Redis(host=r_host, port=r_port, decode_responses=True)
         mclient = pymongo.MongoClient(db_link_url)
-        docs_include = mclient["keywords"]["include"].find_one(
-            {"parent": mkw.strip()})
+        docs_include = mclient["keywords"]["include"].find_one({"parent": mkw.strip()})
         docs_filters = mclient["keywords"]["filter"].find()
 
         if docs_include:
@@ -368,15 +362,18 @@ if __name__ == "__main__":
             for doc in docs_filters:
                 kw_filter.append(doc["name"])
 
-        rclient.hset(mkw, "include", len(kw_includs))
-        rclient.hset(mkw, "filter", len(kw_filter))
+        rclient.hmset(mkw, {"status": "start", "msg": "采集程序启动中..."})
+        # rclient.hset(mkw, "channel", channel)
+        # rclient.hset(mkw, "include", len(kw_includs))
+        # rclient.hset(mkw, "filter", len(kw_filter))
 
         mk = MobileKeywords(url, mkw, seconds, kw_filter, kw_includs)
+        mk.channel = channel  # 赋值当前关键词发布消息的频道
         mk.browser.set_page_load_timeout(seconds)  # 页面超时时间为10S
         mk.redisClient = rclient
         mk.init_save_info()
         rclient.hset(mkw, "msg", u"开始采集关键词" + mkw)
         mk.searching()
         mk.browser.quit()
-    except:
+    except Exception as ex:
         os._exit(0)
