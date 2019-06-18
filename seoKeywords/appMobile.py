@@ -59,8 +59,7 @@ class MobileKeywords:
             file_path = '/home/documents/seobaidu/baiduci/'  #'/home/bbei/Project/anyCode/seoKeywords'
             if not os.path.exists(file_path):
                 os.makedirs(file_path)
-            file_name = os.path.join(file_path,
-                                     u"{}.txt".format(self.keywords))
+            file_name = os.path.join(file_path, u"{}.txt".format(self.keywords))
             self.file_save_path = file_name
             print(u"-----------------------------------------------------")
             print(u"==关键词保存路径为：{}".format(self.file_save_path))
@@ -92,9 +91,7 @@ class MobileKeywords:
         # 针对selenium在centos7 server中的配置
         opt.add_argument('--disable-dev-shm-usage')
         # 自定义请求头
-        opt.add_argument(
-            "user-agent='Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0'"
-        )
+        opt.add_argument("user-agent='Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:66.0) Gecko/20100101 Firefox/66.0'")
         return opt
 
     def status_rest(self):
@@ -123,15 +120,13 @@ class MobileKeywords:
         try:
             if self.retry_counter > 1:
                 self.browser.quit()
-                self.browser = webdriver.Chrome(
-                    chrome_options=self.init_driver())
+                self.browser = webdriver.Chrome(chrome_options=self.init_driver())
                 self.wait = WebDriverWait(self.browser, self.seconds)
             self.browser.get(req_url)
             return True
         except TimeoutException as ex:
             if self.retry_counter <= 1:
-                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg,
-                                                       self.retry_counter))
+                print(u"=== {}，正在尝试重试第 {} 次...".format(tipMsg, self.retry_counter))
                 self.retry_counter += 1
                 self.request_url(req_url, tipMsg)
             else:
@@ -145,7 +140,7 @@ class MobileKeywords:
         try:
             # 添加encoding='utf-8'避免出现UnicodeEncodeError错误
             with open(self.file_save_path, 'a+', encoding='utf-8') as f:
-               f.writelines(kw_data)
+                f.writelines(kw_data)
             kw_data.clear()  # 清空，为下次准备
         except UnicodeEncodeError as ex:
             print(u"===关键词写入文件失败,继续下一个关键词...")
@@ -164,8 +159,7 @@ class MobileKeywords:
             cur_wait_type = EC.element_to_be_clickable
         try:
             if selector_type == "css":
-                ele = self.wait.until(
-                    cur_wait_type((By.CSS_SELECTOR, selector)))
+                ele = self.wait.until(cur_wait_type((By.CSS_SELECTOR, selector)))
             if selector_type == "xpath":
                 ele = self.wait.until(cur_wait_type((By.XPATH, selector)))
             return ele
@@ -214,10 +208,8 @@ class MobileKeywords:
 
         # 等待搜索框和搜索按钮加载完成
         try:
-            txt_search = self.wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "#index-kw")))
-            btn_search = self.wait.until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, "#index-bn")))
+            txt_search = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#index-kw")))
+            btn_search = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#index-bn")))
             # 发送关键词，等待搜索结果
             txt_search.send_keys(self.keywords)
             #btn_search.click()
@@ -261,40 +253,35 @@ class MobileKeywords:
                     if res_title is None:
                         continue
                     try:
-                        res_nlp = nlp_client.simnet(self.keywords,
-                                                    res_title.text)
+                        res_nlp = nlp_client.simnet(self.keywords, res_title.text)
                     except UnicodeEncodeError as ex:
-                        print(u"=== {} 编码转换错误，词意分析出错，继续下个关键词...".format(
-                            self.keywords))
+                        print(u"=== {} 编码转换错误，词意分析出错，继续下个关键词...".format(self.keywords))
                         break
                     except UnicodeDecodeError as ex:
-                        print(u"=== {} 编码解码错误，词意分析出错，继续下个关键词...".format(
-                            self.keywords))
+                        print(u"=== {} 编码解码错误，词意分析出错，继续下个关键词...".format(self.keywords))
                         break
                     except:
-                        print(u"=== {} 接口调用出错，继续下个关键词...".format(
-                            self.keywords))
+                        print(u"=== {} 接口调用出错，继续下个关键词...".format(self.keywords))
                         break
                     if 'score' in res_nlp:
                         if (res_nlp['score'] * 10) > self.kw_score:
                             self.title_counter -= 1
 
-            # 判断当前关键词搜索结果总页数是否大于10页
-            str_xpath = "/html/body/div[3]/div[2]/div[4]/div/a"
-            paging_url = self.ele_exist(str_xpath, "xpath", True)
-            if paging_url is not None:
-                paging_url = paging_url.get_attribute("href").replace(
-                    "pn=10", "pn=90")
-                tip_msg = "拉取关键词翻页信息超时"
-                if self.request_url(paging_url, tip_msg) is None:  # 拉取关键词翻页信息
-                    print(u"=== %s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
-                    return self.res_keywords
-                str_xpath = "/html/body/div[3]/div[2]/div[4]/div/div[2]/span"
-                res_page = self.ele_waiting(str_xpath, "xpath", True, False)
-                if res_page is not None:
-                    res_page_num = res_page.text.split(" ")[1]
-                    if res_page_num != "":
-                        self.page_keywords = int(res_page_num.strip())
+        # 判断当前关键词搜索结果总页数是否大于10页
+        str_xpath = "/html/body/div[3]/div[2]/div[4]/div/a"
+        paging_url = self.ele_exist(str_xpath, "xpath", True)
+        if paging_url is not None:
+            paging_url = paging_url.get_attribute("href").replace("pn=10", "pn=90")
+            tip_msg = "拉取关键词翻页信息超时"
+            if self.request_url(paging_url, tip_msg) is None:  # 拉取关键词翻页信息
+                #self.update_msg(u"<2>%s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
+                return self.res_keywords
+            str_xpath = "#page-controller > div > div.new-pagenav-right > a"
+            btn_next = self.ele_waiting(str_xpath, "css", True, False)
+            # 注意：会出现没有１０页的搜索结果，但是页码任然为１０的情况，
+            # 判断依据为，翻页到１０页，且有下一页的按钮
+            if btn_next is not None:
+                self.page_keywords = 10
 
             len_relation_kw = len(self.res_keywords["sub_keywords"])
             if self.title_counter <= 0 and len_relation_kw > 0:
@@ -370,10 +357,9 @@ class MobileKeywords:
         is_valid_kw = u"有效词"
         if not self.res_keywords["valid"]:
             is_valid_kw = u"无效词"
-        print(u"== ({} / {}) {}，相关词:{} 个,首页出现:{}次，结果是：{}。".format(
-            c_index, t_index, self.keywords,
-            len(self.res_keywords["sub_keywords"]),
-            str(5 - self.title_counter), is_valid_kw))
+        print(u"== ({} / {}) {}，相关词:{} 个,首页出现:{}次，结果是：{}。".format(c_index, t_index, self.keywords,
+                                                                  len(self.res_keywords["sub_keywords"]),
+                                                                  str(5 - self.title_counter), is_valid_kw))
 
     def shell_exit(self, signal_num, frame):
         """
@@ -382,7 +368,7 @@ class MobileKeywords:
         :param frame:必须存在
         """
         try:
-            self.browser.quit()  # 回收webdriver 资源            
+            self.browser.quit()  # 回收webdriver 资源
             print(u"本次共采集关键词:{} 个, 文件保存路径为：{}".format(self.total_keywords, self.file_save_path))
             os._exit(0)
         except:
@@ -408,7 +394,7 @@ if __name__ == "__main__":
         if "," in sys.argv[3]:
             i_keywords = sys.argv[3].split(",")
         else:
-            i_keywords.append(sys.argv[3].strip())    
+            i_keywords.append(sys.argv[3].strip())
 
     print(u"====================================")
     # print(u"==初始化数据库")

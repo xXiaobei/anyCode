@@ -229,12 +229,12 @@ class MobileKeywords:
             if self.request_url(paging_url, tip_msg) is None:  # 拉取关键词翻页信息
                 self.update_msg(u"<2>%s 翻页信息拉取失败，无效关键词，继续下一个词！" % self.keywords)
                 return self.res_keywords
-            str_xpath = "/html/body/div[3]/div[2]/div[4]/div/div[2]/span"
-            res_page = self.ele_waiting(str_xpath, "xpath", True, False)
-            if res_page is not None:
-                res_page_num = res_page.text.split(" ")[1]
-                if res_page_num != "":
-                    self.page_keywords = int(res_page_num.strip())
+            str_xpath = "#page-controller > div > div.new-pagenav-right > a"
+            btn_next = self.ele_waiting(str_xpath, "css", True, False)
+            # 注意：会出现没有１０页的搜索结果，但是页码任然为１０的情况，
+            # 判断依据为，翻页到１０页，且有下一页的按钮
+            if btn_next is not None:
+                self.page_keywords = 10
 
         len_relation_kw = len(self.res_keywords["sub_keywords"])
         if self.title_counter <= 0 and len_relation_kw > 0 and self.page_keywords >= 10:
@@ -348,7 +348,7 @@ if __name__ == "__main__":
 
     try:
         mkw = sys.argv[1]
-        channel = sys.argv[2] # redis发布消息的频道
+        channel = sys.argv[2]  # redis发布消息的频道
         kw_includs, kw_filter = [], []
         rclient = redis.Redis(host=r_host, port=r_port, decode_responses=True)
         mclient = pymongo.MongoClient(db_link_url)

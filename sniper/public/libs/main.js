@@ -215,9 +215,19 @@ var pagination = {
 /*面板逻辑 */
 var home_page = {
     /**
-     * 定义消息通讯
+     * 定义socket客户端链接对象
      */
-    socket: null,
+    socketClient: null,
+    /**
+     *初始化
+     */
+    init: function() {
+        home_page.socketClient = io.connect("http://localhost:3999");
+        home_page.socketClient.on("pullMessage", data => {
+            console.log(data);
+            home_page.displayTips(data);
+        });
+    },
     /**
      * 开始采集关键词
      */
@@ -252,9 +262,9 @@ var home_page = {
                         jq_ele.attr("title", "停止采集");
                         $(e).data("url", "/offwork");
                         $(e).data("channel", data.channel); //绑定消息频道号
-                        home_page.socket.on("pullMessage", data => {
-                            console.log(data);
-                        });
+                        // home_page.socket.on("pullMessage", data => {
+                        //     console.log(data);
+                        // });
                     } else {
                         jq_ele
                             .removeData("start")
@@ -274,32 +284,48 @@ var home_page = {
     /**
      * 显示当前关键词的采集进度
      */
-    displayTips: function(ele, kw) {
-        let interval = 1000; //魂环间隔为1000ms
-        if (!ele) return false;
-        let ele_tips = $(ele)
+    displayTips: function(d) {
+        if (!d) return;
+        let ele_tr = null;
+        let btns = $(".btn-danger");
+        for (let i = 0; i < btns.length; i++) {
+            if ($(btns[i]).data("channel") == d.c) {
+                ele_tr = $(btns[i])
+                    .parent()
+                    .parent();
+                break;
+            }
+        }
+
+        let str_rep = "";
+        let class_ele = "";
+        const tips_ele = $(ele_tr)
             .find("td")
             .eq(1)
             .find("div");
-        if (ele_tips[0].className == "") {
-            ele_tips.addClass("alert alert-success");
+        $(tips_ele).removeClass(); //删除所有的class
+
+        if (d.m.indexOf("<0>") !== -1) {
+            str_rep = "<0>";
+            class_ele = "alert alert-success";
         }
-        let tips = setInterval(() => {
-            $.getJSON("/tips?kw=" + kw, data => {
-                ele_tips.text(data.msg);
-                if (data.flg == 1) clearInterval(tips);
-            });
-        }, interval);
+        if (d.m.indexOf("<1>") !== -1) {
+            str_rep = "<1>";
+            class_ele = "alert alert-warning";
+        }
+        if (d.m.indexOf("<2>") !== -1) {
+            str_rep = "<2>";
+            class_ele = "alert alert-danger";
+        }
+        d.m = d.m.replace(str_rep, "");
+        $(tips_ele)
+            .addClass(class_ele)
+            .text(d.m);
     },
     /**
      * 查看已采集的关键词
      */
     result: function(ele, kw) {
-        const client = io.connect("http://localhost:3999");
-        if (!client) return;
-        client.emit("pullMessage", "一肖一码", data => {
-            console.log(data);
-        });
         // kw = "一肖一码";
         // $.getJSON("/tips?kw=" + kw, data => {
         //     if (!data.msg) return;
@@ -438,7 +464,7 @@ $(function() {
 
     //面板页逻辑
     if ($("#main_page").length > 0) {
-        home_page.socket = io.connect("http://localhost:3999");
+        home_page.init();
     }
     //主词逻辑
     if ($(".mkw_page").length > 0) {
