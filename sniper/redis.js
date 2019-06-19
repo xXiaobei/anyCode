@@ -22,6 +22,10 @@ redisClient.on("ready", err => {
 redisClient.on("message", (channel, message) => {
     if (socketClient) {
         socketClient.emit("pullMessage", { c: channel, m: message });
+        if (message.startsWith("<3>")) {
+            //关键词采集结束,则取消该频道的订阅
+            redisClient.unsubscribe(channel);
+        }
     }
 });
 

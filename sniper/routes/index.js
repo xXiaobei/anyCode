@@ -1,5 +1,6 @@
 var path = require("path");
 var express = require("express");
+var bluebird = require("bluebird");
 var redisClient = require("redis");
 var redis_sub = require("../redis").redis;
 var menu = require("../models/menu");
@@ -7,6 +8,10 @@ var pagination = require("../models/pagination");
 var m_main = require("../models/main");
 var spawn = require("child_process").spawn;
 var router = express.Router();
+
+//创建redis客户端，用于非订阅操作
+const redis = redisClient.createClient();
+bluebird.promisifyAll(redis);
 
 /* GET home page. */
 router.get("/", function(req, res, next) {
@@ -49,12 +54,29 @@ router.post("/nextPage", function(req, res, next) {
  */
 router.post("/work", function(req, res, next) {
     try {
+        //判断采集任务是否超过４个
+        let counter = 0;
+        let list_keys = null;
+        redis.keys("*", (err, res) => {
+            list_keys = res;
+            // res.forEach(k => {
+            //     redis.hget(k, "status", (err, res) => {
+            //         const a = res;
+            //     });
+            //     // if (s == "start") counter++;
+            // });
+        });
+        if (counter > 3) {
+            const msg = "采集最大进程为４，请等待其它进程结束后重试！";
+            res.send({ msg: msg, flg: 1 });
+        }
         const kw = req.body.kw;
         const channel = Date.now(); // 设置当前关键词的消息发布频道
         const env_path = "/home/bbei/Documents/pythonVenv/anycode/bin/python3";
         const py_path = path.join(path.dirname(__dirname), "sniper.py");
         redis_sub.subscribe(channel); //redis 订阅消息频道
-        const py_procss = spawn(env_path, [py_path, kw, channel]);
+
+        spawn(env_path, [py_path, kw, channel]);
         res.send({ msg: "success", flg: 0, channel: channel });
     } catch (error) {
         res.send({ msg: "采集失败，请重试！" + error, flg: 1 });
@@ -67,11 +89,13 @@ router.post("/work", function(req, res, next) {
 router.post("/offwork", function(req, res, next) {
     try {
         //链接到localhost，没有密码相关
-        const redis = redisClient.createClient();
         const kw = req.body.kw;
         const channel = req.body.channel;
         redis.hset(kw, "status", "stop");
-        redis_sub.unsubscribe(channel); //取消消息频道订阅
+        redis.hget(kw, "counter", res => {
+            //更新活跃的任务计数器
+            redis.hset(kw, "counter", parseInt(res) - 1);
+        });
         res.send({ msg: "", flg: 0 });
     } catch (error) {
         res.send({ msg: "停止错误，请重！", flg: 1 });

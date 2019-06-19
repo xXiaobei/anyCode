@@ -56,7 +56,7 @@ class MobileKeywords:
                 os.makedirs(file_path)
             file_name = os.path.join(file_path, u"{}.txt".format(self.keywords))
             self.file_save_path = file_name
-            self.update_msg(u"<0>关键词保存路径为：{}".format(self.file_save_path))
+            self.update_msg(u"<0>开始采集，关键词保存路径为：{}".format(self.file_save_path))
         except OSError as ex:
             self.update_msg(u"<2>关键词结果保存文件创建出错，请重试..." + str(ex))
             os._exit(0)
@@ -318,19 +318,21 @@ class MobileKeywords:
 
     def print_tips(self, c_index, t_index):
         is_valid_kw = u"有效词"
+        msg_type = "<0>"  #　成功消息（有效词）　0.1提示消息（无效词）
         if not self.res_keywords["valid"]:
+            msg_type = "<0.1>"
             is_valid_kw = u"无效词"
-        tipMsg = u"<0>({} / {}) {}，相关词:{} 个,首页出现:{}次，搜索结果共:{}页，结果是:{}。".format(c_index, t_index, self.keywords,
-                                                                               len(self.res_keywords["sub_keywords"]),
-                                                                               str(5 - self.title_counter),
-                                                                               str(self.page_keywords), is_valid_kw)
+        tipMsg = u"{}({} / {}) {}，相关词:{} 个,首页出现:{}次，搜索结果共:{}页，结果是:{}。".format(msg_type, c_index, t_index, self.keywords,
+                                                                              len(self.res_keywords["sub_keywords"]),
+                                                                              str(5 - self.title_counter),
+                                                                              str(self.page_keywords), is_valid_kw)
         self.redisClient.hset(self.mainKeywords, "msg", tipMsg)
         self.redis_pub_msg(tipMsg)
 
     def shell_exit(self):
         try:
             self.browser.quit()  # 回收webdriver 资源
-            tipMsg = u"本次共采集关键词:{} 个, 文件保存路径为：{}".format(self.total_keywords, self.file_save_path)
+            tipMsg = u"<3>本次共采集关键词:{} 个, 文件保存路径为：{}".format(self.total_keywords, self.file_save_path)
             self.redisClient.hset(self.mainKeywords, "msg", tipMsg)
             self.redis_pub_msg(tipMsg)
             os._exit(0)
@@ -363,17 +365,22 @@ if __name__ == "__main__":
                 kw_filter.append(doc["name"])
 
         rclient.hmset(mkw, {"status": "start", "msg": "采集程序启动中..."})
+        task_counter = rclient.hget(mkw, "counter")
+        if task_counter is None:
+            rclient.hset(mkw, "counter", 0)
+        else:
+            rclient.hset(mkw, "counter", int(task_counter) + 1)
         # rclient.hset(mkw, "channel", channel)
         # rclient.hset(mkw, "include", len(kw_includs))
         # rclient.hset(mkw, "filter", len(kw_filter))
 
-        mk = MobileKeywords(url, mkw, seconds, kw_filter, kw_includs)
-        mk.channel = channel  # 赋值当前关键词发布消息的频道
-        mk.browser.set_page_load_timeout(seconds)  # 页面超时时间为10S
-        mk.redisClient = rclient
-        mk.init_save_info()
-        rclient.hset(mkw, "msg", u"开始采集关键词" + mkw)
-        mk.searching()
-        mk.browser.quit()
+        # mk = MobileKeywords(url, mkw, seconds, kw_filter, kw_includs)
+        # mk.channel = channel  # 赋值当前关键词发布消息的频道
+        # mk.browser.set_page_load_timeout(seconds)  # 页面超时时间为10S
+        # mk.redisClient = rclient
+        # mk.init_save_info()
+        # rclient.hset(mkw, "msg", u"开始采集关键词" + mkw)
+        # mk.searching()
+        # mk.browser.quit()
     except Exception as ex:
         os._exit(0)

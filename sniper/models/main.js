@@ -106,13 +106,13 @@ s_main.statics.pagination = function(page, callback) {
             .limit(page.pageSize)
             .then(docs => {
                 page.result = docs;
-                return this.count();
-            })
-            .catch(err => {
-                reject(err);
+                return this.aggregate([
+                    { $group: { _id: null, count: { $sum: 1 } } },
+                    { $project: { _id: 0 } }
+                ]);
             })
             .then(c => {
-                page.totalPages = c;
+                page.totalPages = c[0].count;
                 page.pageCounter = Math.ceil(page.totalPages / page.pageSize); //求总页数
                 page.firstPage = page.pageIndex == 1 ? true : false;
                 page.lastPage = page.pageIndex == page.pageCounter ? true : false;

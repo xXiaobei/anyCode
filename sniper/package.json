@@ -8,6 +8,7 @@
   "dependencies": {
     "@types/jquery": "^3.3.29",
     "@types/mongoose": "^5.5.5",
+    "bluebird": "^3.5.5",
     "body-parser": "^1.19.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",

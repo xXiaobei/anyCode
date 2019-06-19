@@ -2,6 +2,7 @@
 页面逻辑
 */
 
+//#region  分页控件逻辑
 /*分页逻辑*/
 var pagination = {
     //初始化列表数据
@@ -210,8 +211,9 @@ var pagination = {
         $(".pagination li").bind("click", pagination.pagination_next); //绑定翻页事件
     }
 };
+//#endregion
 
-/**========================================================================== */
+//#region 面板相关逻辑
 /*面板逻辑 */
 var home_page = {
     /**
@@ -219,9 +221,14 @@ var home_page = {
      */
     socketClient: null,
     /**
+     * 保存采集任务的按钮
+     */
+    taskButtons: [],
+    /**
      *初始化
      */
     init: function() {
+        home_page.taskButtons = [];
         home_page.socketClient = io.connect("http://localhost:3999");
         home_page.socketClient.on("pullMessage", data => {
             console.log(data);
@@ -229,20 +236,41 @@ var home_page = {
         });
     },
     /**
+     * 开始/停止按钮切换逻辑
+     * @param {} btn
+     */
+    btn_start_logic: function(btn, channel) {
+        if (!btn) return false;
+        let jq_ele = $(btn);
+        if (!jq_ele.data("start")) {
+            jq_ele
+                .data("start", "start")
+                .removeClass("btn-success")
+                .addClass("btn-danger")
+                .html('<span class="glyphicon glyphicon-stop"></span> ');
+            jq_ele.attr("title", "停止采集");
+            jq_ele.data("url", "/offwork");
+            jq_ele.data("channel", channel); //绑定消息频道号
+        } else {
+            jq_ele
+                .removeData("start")
+                .removeClass("btn-danger")
+                .addClass("btn-success")
+                .html('<span class="glyphicon glyphicon-play"></span> ');
+            jq_ele.attr("title", "开始采集");
+            jq_ele.removeData("url");
+        }
+    },
+    /**
      * 开始采集关键词
      */
+    //prettier-ignore
     work: function(e) {
         let url = "/work";
         const jq_ele = $(e);
         const channel = $(e).data("channel") || "";
-        const p_ele = $(e)
-            .parent()
-            .parent();
-        const kw = $(p_ele)
-            .find("td")
-            .eq(0)
-            .text()
-            .trim();
+        const p_ele = $(e).parent().parent();
+        const kw = $(p_ele).find("td").eq(0).text().trim();
         if ($(e).data("url")) {
             url = $(e).data("url");
         }
@@ -253,30 +281,17 @@ var home_page = {
             data: { kw: kw, channel: channel },
             success: function(data) {
                 if (data.flg == 0) {
-                    if (!jq_ele.data("start")) {
-                        jq_ele
-                            .data("start", "start")
-                            .removeClass("btn-success")
-                            .addClass("btn-danger")
-                            .html('<span class="glyphicon glyphicon-stop"></span> ');
-                        jq_ele.attr("title", "停止采集");
-                        $(e).data("url", "/offwork");
-                        $(e).data("channel", data.channel); //绑定消息频道号
-                        // home_page.socket.on("pullMessage", data => {
-                        //     console.log(data);
-                        // });
-                    } else {
-                        jq_ele
-                            .removeData("start")
-                            .removeClass("btn-danger")
-                            .addClass("btn-success")
-                            .html('<span class="glyphicon glyphicon-play"></span> ');
-                        jq_ele.attr("title", "开始采集");
-                        $(e).removeData("url");
-                    }
-                    //home_page.displayTips(p_ele, kw);
+                    home_page.btn_start_logic(jq_ele, data.channel);
+                    home_page.taskButtons.push(jq_ele);
                 } else {
-                    console.log(data.msg);
+                    $.alert({
+                        theme: "material",
+                        animation: "scale",
+                        type: "orange",
+                        title: "警告",
+                        columnClass: "col-md-6 col-md-offset-3",
+                        content: data.msg
+                    });
                 }
             }
         });
@@ -284,43 +299,46 @@ var home_page = {
     /**
      * 显示当前关键词的采集进度
      */
+    //prettier-ignore
     displayTips: function(d) {
         if (!d) return;
         let ele_tr = null;
-        let btns = $(".btn-danger");
-        for (let i = 0; i < btns.length; i++) {
-            if ($(btns[i]).data("channel") == d.c) {
-                ele_tr = $(btns[i])
-                    .parent()
-                    .parent();
+        let btn_target = null;
+        for (let i = 0; i < home_page.taskButtons.length; i++) {
+            if ($(home_page.taskButtons[i]).data("channel") == d.c) {
+                btn_target = $(home_page.taskButtons[i]);
+                ele_tr = $(home_page.taskButtons[i]).parent().parent();
                 break;
             }
         }
 
         let str_rep = "";
         let class_ele = "";
-        const tips_ele = $(ele_tr)
-            .find("td")
-            .eq(1)
-            .find("div");
+        const tips_ele = $(ele_tr).find("td").eq(1).find("div");
         $(tips_ele).removeClass(); //删除所有的class
 
         if (d.m.indexOf("<0>") !== -1) {
             str_rep = "<0>";
             class_ele = "alert alert-success";
         }
-        if (d.m.indexOf("<1>") !== -1) {
-            str_rep = "<1>";
+        if (d.m.indexOf("<1>") !== -1 || d.m.indexOf("<0.1>") != -1) {
+            str_rep = d.m.indexOf("<1>") !== -1 ? "<1>" : "<0.1>";
             class_ele = "alert alert-warning";
         }
         if (d.m.indexOf("<2>") !== -1) {
             str_rep = "<2>";
             class_ele = "alert alert-danger";
         }
+        if (d.m.indexOf("<3>") != -1) {
+            //采集结束
+            str_rep = "<3>";
+            //重置按钮状态为开始
+            if (btn_target[0].className.indexOf("btn-danger") != -1) {
+                home_page.btn_start_logic(btn_target, d.c);
+            }
+        }
         d.m = d.m.replace(str_rep, "");
-        $(tips_ele)
-            .addClass(class_ele)
-            .text(d.m);
+        $(tips_ele).addClass(class_ele).text(d.m);
     },
     /**
      * 查看已采集的关键词
@@ -344,8 +362,9 @@ var home_page = {
         // });
     }
 };
+//#endregion
 
-/**========================================================================== */
+//#region 主关键词页面逻辑
 /*主关键词逻辑 */
 var mkw_page = {
     init: function() {
@@ -451,6 +470,7 @@ var mkw_page = {
         });
     }
 };
+//#endregion
 
 /*过滤词逻辑 */
 var fkw_page = {};
