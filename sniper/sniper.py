@@ -188,7 +188,11 @@ class MobileKeywords:
 
         # 判断关键词在首页出现次数
         str_xpath = "/html/body/div[3]/div[2]/div[2]/div"
-        res_search = self.ele_exist(str_xpath, "xpath", False)
+        #res_search = self.ele_exist(str_xpath, "xpath", False)
+
+        res_search = []  # 暂停首页出现次数逻辑，调用ｂａｉｄｕ的ｎｌｐ接口很慢
+        self.title_counter = 0
+
         if res_search is not None:
             for title in res_search:
                 if u"其他人还在搜" in title.text:  # 其他人还在搜 相关词
@@ -340,6 +344,7 @@ class MobileKeywords:
             pass
 
     def redis_pub_msg(self, msg):
+        pass
         self.redisClient.publish(self.channel, msg)
 
 
@@ -349,6 +354,8 @@ if __name__ == "__main__":
     url = "https://m.baidu.com/"
 
     try:
+        # mkw = "一肖一码"  #sys.argv[1]
+        # channel = "123123"  #sys.argv[2]  # redis发布消息的频道
         mkw = sys.argv[1]
         channel = sys.argv[2]  # redis发布消息的频道
         kw_includs, kw_filter = [], []
@@ -364,23 +371,20 @@ if __name__ == "__main__":
             for doc in docs_filters:
                 kw_filter.append(doc["name"])
 
-        rclient.hmset(mkw, {"status": "start", "msg": "采集程序启动中..."})
-        task_counter = rclient.hget(mkw, "counter")
-        if task_counter is None:
-            rclient.hset(mkw, "counter", 0)
+        rclient.hmset(mkw, {"status": "start", "msg": "采集程序启动中...", "channel": channel})
+        task_counter = rclient.get("process_counter")
+        if task_counter is None or task_counter == "NaN":
+            rclient.set("process_counter", 0)
         else:
-            rclient.hset(mkw, "counter", int(task_counter) + 1)
-        # rclient.hset(mkw, "channel", channel)
-        # rclient.hset(mkw, "include", len(kw_includs))
-        # rclient.hset(mkw, "filter", len(kw_filter))
+            rclient.set("process_counter", int(task_counter) + 1)
 
-        # mk = MobileKeywords(url, mkw, seconds, kw_filter, kw_includs)
-        # mk.channel = channel  # 赋值当前关键词发布消息的频道
-        # mk.browser.set_page_load_timeout(seconds)  # 页面超时时间为10S
-        # mk.redisClient = rclient
-        # mk.init_save_info()
-        # rclient.hset(mkw, "msg", u"开始采集关键词" + mkw)
-        # mk.searching()
-        # mk.browser.quit()
+        mk = MobileKeywords(url, mkw, seconds, kw_filter, kw_includs)
+        mk.channel = channel  # 赋值当前关键词发布消息的频道
+        mk.browser.set_page_load_timeout(seconds)  # 页面超时时间为10S
+        mk.redisClient = rclient
+        mk.init_save_info()
+        rclient.hset(mkw, "msg", u"开始采集关键词" + mkw)
+        mk.searching()
+        mk.browser.quit()
     except Exception as ex:
         os._exit(0)

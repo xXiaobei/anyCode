@@ -31,6 +31,12 @@ var pagination = {
         for (let i = 0; i < data.length; i++) {
             // 生成面板列表
             if ($("#main_page").length > 0) {
+                let cust_data = "";
+                let func = "home_page.work(this)";
+                if (data[i].ip && data[i].channel) {
+                    func = "";
+                    cust_data = `disabled="disabled" data-channel="${data[i].channel}"`;
+                }
                 tr_html += "<tr><td>" + data[i].name + "</td>";
                 tr_html +=
                     '<td><div class="" style="padding:5px;margin-bottom:0px;">...</div></td>';
@@ -39,13 +45,8 @@ var pagination = {
                 tr_html +=
                     '<button type="button" class="btn btn-primary" title="查看已采集的词" onclick="home_page.result(this)">';
                 tr_html += '<span class="glyphicon glyphicon-eye-open"></span> </button>';
-                tr_html +=
-                    '<button type="button" class="btn btn-success" title="开始采集" onclick="home_page.work(this)">';
+                tr_html += `<button type="button" class="btn btn-success" title="开始采集" onclick="${func}" ${cust_data}>`;
                 tr_html += '<span class="glyphicon glyphicon-play"></span> </button>';
-                // tr_html += '<button type="button" class="btn btn-default" title="暂停采集">';
-                //tr_html += '<span class="glyphicon glyphicon-pause"></span> </button>';
-                //tr_html += '<button type="button" class="btn btn-default" title="停止采集">';
-                //tr_html += '<span class="glyphicon glyphicon-stop"></span> </button>';
                 tr_html += "</td></tr>";
             }
             //生成主词列表
@@ -194,17 +195,12 @@ var pagination = {
             totalPages: data.totalPages
         };
 
-        p_html +=
-            '<li class="' + p_pre_class + '"><a href="javascript:;" class="pre">&laquo;</a></li>';
+        p_html += `<li class="${p_pre_class}"><a href="javascript:;" class="pre">&laquo;</a></li>`;
         for (let i = 1; i <= data.pageCounter; i++) {
             if (i > 1) active = "";
-            p_html +=
-                '<li class="' + active + '"><a href="javascript:;" class="cur">' + i + "</a></li>";
+            p_html += `<li class="${active}"><a href="javascript:;" class="cur">${i}</a></li>`;
         }
-        p_html +=
-            '<li class="' +
-            p_next_class +
-            '"><a href="javascript:;" class="next">&raquo;</a></li></ul>';
+        p_html += `<li class="${p_next_class}"><a href="javascript:;" class="next">&raquo;</a></li></ul>`;
 
         $("#tab_main").data(page_next); //存储翻页数据
         $("#tab_foot").html(p_html); //初始化分页工具栏
@@ -216,6 +212,10 @@ var pagination = {
 //#region 面板相关逻辑
 /*面板逻辑 */
 var home_page = {
+    /**
+     *定义socket服务ip地址
+     */
+    socketAdress: "",
     /**
      * 定义socket客户端链接对象
      */
@@ -229,7 +229,7 @@ var home_page = {
      */
     init: function() {
         home_page.taskButtons = [];
-        home_page.socketClient = io.connect("http://localhost:3999");
+        home_page.socketClient = io.connect(home_page.socketAdress);
         home_page.socketClient.on("pullMessage", data => {
             console.log(data);
             home_page.displayTips(data);
@@ -282,7 +282,7 @@ var home_page = {
             success: function(data) {
                 if (data.flg == 0) {
                     home_page.btn_start_logic(jq_ele, data.channel);
-                    home_page.taskButtons.push(jq_ele);
+                    home_page.taskButtons.push(jq_ele);                   
                 } else {
                     $.alert({
                         theme: "material",
@@ -304,6 +304,15 @@ var home_page = {
         if (!d) return;
         let ele_tr = null;
         let btn_target = null;
+        if(home_page.taskButtons.length == 0) {
+            const trs = $("#tab_body tr");
+            for(let i=0; i<trs.length; i++){
+                const btn = $(trs[i]).find("td").eq(2).find("button").eq(2);
+                if(btn.attr("disabled")) {
+                    home_page.taskButtons.push(btn);
+                }
+            }
+        }
         for (let i = 0; i < home_page.taskButtons.length; i++) {
             if ($(home_page.taskButtons[i]).data("channel") == d.c) {
                 btn_target = $(home_page.taskButtons[i]);
@@ -316,7 +325,7 @@ var home_page = {
         let class_ele = "";
         const tips_ele = $(ele_tr).find("td").eq(1).find("div");
         $(tips_ele).removeClass(); //删除所有的class
-
+        
         if (d.m.indexOf("<0>") !== -1) {
             str_rep = "<0>";
             class_ele = "alert alert-success";
@@ -336,9 +345,16 @@ var home_page = {
             if (btn_target[0].className.indexOf("btn-danger") != -1) {
                 home_page.btn_start_logic(btn_target, d.c);
             }
+            //重置数据库状态
+            $(btn_target).data("url","/offwork");
+            home_page.work(btn_target);
         }
         d.m = d.m.replace(str_rep, "");
         $(tips_ele).addClass(class_ele).text(d.m);
+        if(str_rep == "<3>") {
+            //home_page.socketClient.disconnect();//断开socket链接
+            //home_page.socketClient.removeAllListeners(); //取消所有监听
+        }
     },
     /**
      * 查看已采集的关键词
@@ -484,6 +500,8 @@ $(function() {
 
     //面板页逻辑
     if ($("#main_page").length > 0) {
+        const ip = $("#main_page").data("ip");
+        home_page.socketAdress = ip + ":3999";
         home_page.init();
     }
     //主词逻辑

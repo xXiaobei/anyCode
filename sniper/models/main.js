@@ -6,7 +6,10 @@ var m_include = require("./include");
 
 //定义模板
 var s_main = mongoose.Schema({
-    name: String
+    ip: String,
+    name: String,
+    channel: String,
+    status: String
 });
 
 //定义索引器 1:正序 -1:反序
@@ -43,10 +46,12 @@ s_main.statics.insert = function(json, callback) {
 };
 
 //更新
-s_main.statics.update = function(condition, json, callback) {
-    return this.update(condition, json, (err, raw) => {
-        if (err) throw err;
-        callback(raw);
+s_main.statics.edit = function(condition, json) {
+    return new Promise((resolve, reject) => {
+        this.updateOne(condition, json, (err, res) => {
+            if (err) reject(err);
+            resolve(res);
+        });
     });
 };
 

@@ -53,7 +53,7 @@ router.post("/insert", (req, res, next) => {
     }
 
     const d_json = {
-        mkw: { name: mkw_name },
+        mkw: { name: mkw_name, ip: "", status: "", channel: "" },
         ikw: { parent: mkw_name, words: ikw_ary }
     };
 

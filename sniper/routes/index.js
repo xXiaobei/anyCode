@@ -7,7 +7,11 @@ var menu = require("../models/menu");
 var pagination = require("../models/pagination");
 var m_main = require("../models/main");
 var spawn = require("child_process").spawn;
+var netInterfaces = require("os").networkInterfaces();
 var router = express.Router();
+
+//客户端的ｉｐ
+let client_Ip = "";
 
 //创建redis客户端，用于非订阅操作
 const redis = redisClient.createClient();
@@ -16,7 +20,18 @@ bluebird.promisifyAll(redis);
 /* GET home page. */
 router.get("/", function(req, res, next) {
     var g_menu = menu(0);
-    res.render("index", { title: "Express", menu: g_menu });
+    for (var devName in netInterfaces) {
+        var iface = netInterfaces[devName];
+        if (client_Ip != "") break;
+        for (var i = 0; i < iface.length; i++) {
+            var alias = iface[i];
+            if (alias.family === "IPv4" && alias.address !== "127.0.0.1" && !alias.internal) {
+                client_Ip = alias.address;
+                break;
+            }
+        }
+    }
+    res.render("index", { title: "Express", menu: g_menu, ip: client_Ip });
 });
 
 /**
@@ -56,16 +71,14 @@ router.post("/work", function(req, res, next) {
     try {
         //判断采集任务是否超过４个
         let counter = 0;
-        let list_keys = null;
-        redis.keys("*", (err, res) => {
-            list_keys = res;
-            // res.forEach(k => {
-            //     redis.hget(k, "status", (err, res) => {
-            //         const a = res;
-            //     });
-            //     // if (s == "start") counter++;
-            // });
-        });
+        redis
+            .existsAsync("process_counter")
+            .then(res => {
+                return redis.getAsync("process_counter");
+            })
+            .then(res => {
+                if (res) counter = parseInt(res);
+            });
         if (counter > 3) {
             const msg = "采集最大进程为４，请等待其它进程结束后重试！";
             res.send({ msg: msg, flg: 1 });
@@ -75,10 +88,11 @@ router.post("/work", function(req, res, next) {
         const env_path = "/home/bbei/Documents/pythonVenv/anycode/bin/python3";
         const py_path = path.join(path.dirname(__dirname), "sniper.py");
         redis_sub.subscribe(channel); //redis 订阅消息频道
-
+        m_main.edit({ name: kw }, { $set: { channel: channel, status: "start", ip: client_Ip } }); //更新主词状态
         spawn(env_path, [py_path, kw, channel]);
         res.send({ msg: "success", flg: 0, channel: channel });
     } catch (error) {
+        m_main.edit({ name: kw }, { $set: { ip: "", channel: "", status: "" } }); //更新主词状态
         res.send({ msg: "采集失败，请重试！" + error, flg: 1 });
     }
 });
@@ -92,10 +106,10 @@ router.post("/offwork", function(req, res, next) {
         const kw = req.body.kw;
         const channel = req.body.channel;
         redis.hset(kw, "status", "stop");
-        redis.hget(kw, "counter", res => {
-            //更新活跃的任务计数器
-            redis.hset(kw, "counter", parseInt(res) - 1);
+        redis.get("process_counter", res => {
+            redis.set("process_counter", parseInt(res) - 1); //更新活跃的任务计数器
         });
+        m_main.edit({ name: kw }, { $set: { ip: "", channel: "", status: "" } }); //更新主词状态
         res.send({ msg: "", flg: 0 });
     } catch (error) {
         res.send({ msg: "停止错误，请重！", flg: 1 });
