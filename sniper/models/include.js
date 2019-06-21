@@ -39,4 +39,14 @@ s_include.statics.insert = function(json) {
     });
 };
 
+//更新
+s_include.statics.update = function(condition, json) {
+    return new Promise((resolve, reject) => {
+        this.updateOne(condition, json, (err, res) => {
+            if (err) reject(err);
+            resolve(res);
+        });
+    });
+};
+
 module.exports = mongoose.model("include", s_include);

@@ -2,6 +2,7 @@ var express = require("express");
 var menu = require("../models/menu");
 var pagination = require("../models/pagination");
 var m_main = require("../models/main");
+var m_include = require("../models/include");
 var router = express.Router();
 
 /*主关键词管理 */
@@ -85,6 +86,51 @@ router.post("/delete", (req, res, next) => {
         },
         result => {
             res.send({ msg: result, flg: 0 });
+        }
+    );
+});
+
+/**
+ *获取当前主关键词的包含词
+ */
+router.get("/get_includes", (req, res, next) => {
+    const m_kw = req.query["kw"];
+    m_include.query({ parent: m_kw }).then(
+        docs => {
+            let kws = "";
+            if (docs.length > 0) {
+                docs[0].words.forEach(k => {
+                    kws += k + ",";
+                });
+                kws = kws.substr(0, kws.length - 1);
+            }
+            res.send({ kws: kws, flg: 0 });
+        },
+        err => {
+            res.send({ kws: "", flg: 1 });
+        }
+    );
+});
+
+/**
+ * 主关键词所属的包含词的修改
+ */
+router.post("/save_includes", (req, res, next) => {
+    const i_kws = req.body.i_kws;
+    const m_kw = req.body.m_kw;
+
+    let ary_ikw = [];
+    if (i_kws.indexOf(",") != -1) ary_ikw = i_kws.split(",");
+
+    const c_json = { parent: m_kw };
+    const u_json = { $set: { words: ary_ikw } };
+
+    m_include.update(c_json, u_json).then(
+        result => {
+            res.send({ msg: "", flg: 0 });
+        },
+        err => {
+            res.send({ msg: "", flg: 1 });
         }
     );
 });

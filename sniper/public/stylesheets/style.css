@@ -10,3 +10,21 @@ a {
 .btn-sniper {
     margin: 5px;
 }
+
+.super_table li input,
+button {
+    vertical-align: middle;
+}
+
+.super_table li {
+    display: table-cell;
+    height: 40px;
+    line-height: 40px;
+    padding-right: 5px;
+}
+
+.super_table {
+    width: 100%;
+    display: table-row;
+    list-style: none;
+}

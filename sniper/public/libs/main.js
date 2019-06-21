@@ -12,7 +12,7 @@ var pagination = {
             req_url = "/mkw/init?" + Math.random();
         }
         if ($(".fkw_page").length > 0) {
-            req_url = "/initData?" + Math.random();
+            req_url = "/fkw/init?" + Math.random();
         }
         if ($(".ikw_page").length > 0) {
             req_url = "/initData?" + Math.random();
@@ -51,14 +51,28 @@ var pagination = {
             }
             //生成主词列表
             if ($(".mkw_page").length > 0) {
+                let html_counter = `<strong class="text-danger">0</strong>`;
+                if (data[i].includs.length > 0) {
+                    const c = data[i].includs[0].words.length;
+                    html_counter = `<strong class="text-success">${c}</strong>`;
+                }
                 tr_html += "<tr><td>" + data[i].name + "</td>";
+                tr_html += `<td>共有包含词 ${html_counter} 个...</td>`;
                 tr_html += '<td><div class="btn-group" role="group" aria-label="Button group">';
-                tr_html += '<button type="button" class="btn btn-default" title="查看过滤词">';
-                tr_html += '<span class="glyphicon glyphicon-filter"></span> </button>';
-                tr_html += '<button type="button" class="btn btn-default" title="查看包含词">';
-                tr_html += '<span class="glyphicon glyphicon-pushpin"></span> </button>';
+                tr_html +=
+                    '<button type="button" class="btn btn-default" title="编辑包含词" onclick="mkw_page.edit(this)">';
+                tr_html += '<span class="glyphicon glyphicon-pencil"></span> </button>';
                 tr_html +=
                     '<button type="button" class="btn btn-danger" title="删除关键词" onclick="mkw_page.delete(this)">';
+                tr_html += '<span class="glyphicon  glyphicon-remove"></span> </button>';
+                tr_html += "</td></tr>";
+            }
+            //生成过滤词列表
+            if ($(".fkw_page").length > 0) {
+                tr_html += "<tr><td>" + data[i].name + "</td>";
+                tr_html += '<td><div class="btn-group" role="group" aria-label="Button group">';
+                tr_html +=
+                    '<button type="button" class="btn btn-danger" title="删除" onclick="fkw_page.delete(this)">';
                 tr_html += '<span class="glyphicon  glyphicon-remove"></span> </button>';
                 tr_html += "</td></tr>";
             }
@@ -99,7 +113,7 @@ var pagination = {
             req_url = "/mkw/next";
         }
         if ($(".fkw_page").length > 0) {
-            req_url = "/initData?";
+            req_url = "/fkw/next";
         }
         if ($(".ikw_page").length > 0) {
             req_url = "/initData?";
@@ -122,7 +136,7 @@ var pagination = {
                     pagination.pagination_dispaly(data, false);
                 },
                 error: function(error) {
-                    throw error;
+                    console.log(error);
                 }
             });
         }
@@ -207,6 +221,7 @@ var pagination = {
         $(".pagination li").bind("click", pagination.pagination_next); //绑定翻页事件
     }
 };
+
 //#endregion
 
 //#region 面板相关逻辑
@@ -484,15 +499,197 @@ var mkw_page = {
                 }
             }
         });
+    },
+    /**
+     * 编辑
+     * @param {} e
+     */
+    //prettier-ignore
+    edit: function(e) {
+        if (!e) return;
+        //let htmls = "", i_kws = "";
+        let tbody = "", thead = "";
+        const ele_tr = $(e).parent().parent().parent();
+        const m_kw = ele_tr.find("td").eq(0).text().trim();
+        const req_url = "/mkw/get_includes?kw=" + m_kw;
+        $.getJSON(req_url, function(data) {
+            var i_kws = data.kws;
+            console.log(i_kws);
+            if (i_kws != "") {
+                i_kws.split(",").forEach(k => {
+                    tbody += `<tr><td>${k}</td>`;
+                    tbody += `<td><a class="btn btn-primary pull-right" href="javascript:;" role="button" onclick="mkw_page.includs_logic(this)">`;
+                    tbody += `<span class="glyphicon glyphicon-remove"></span>删除</a></td></tr>`;
+                });
+            } else {
+                tbody += `<tr><td colspan="2">请添加包含词...</td>`;
+            }
+            
+            thead += `<ul class="super_table">`; 
+            thead += `<li style="width:381px;"><input id="m_ikw_name" class="form-control" type="text" placeholder="请输入包含词..."></li>`; 
+            thead += `<li><button type="button" class="btn btn-primary" onclick="mkw_page.includs_logic(this)">添加</button></li>`;
+            thead += `<li><button type="button" data-kw="${m_kw}" class="btn btn-primary" onclick="mkw_page.includs_logic(this)">保存</button></li></ul>`;
+
+            const tb_htmls = `<table class="table table-hover"><tbody id="m_tbody_ikw">${tbody}</tbody></table>`;
+            const content_htmls = thead + tb_htmls;
+
+            const jc = $.dialog({
+                theme: "material",
+                animation: "scale",
+                type: "orange",
+                title: `<span style="color:#06a3d9;">${m_kw}</span> 所属的包含词`,
+                columnClass: "col-md-6 col-md-offset-3",
+                content: content_htmls
+            });
+        });
+    },
+    /**
+     * 包含词处理逻辑
+     * @param {*} e
+     */
+    //prettier-ignore
+    includs_logic: function(e) {
+        const btn_type = $(e).text();
+        if (btn_type == "删除") {
+            $(e).parent().parent().remove();
+        }
+        if (btn_type == "添加") {
+            let kw_htmls = ``;
+            const kw = $("#m_ikw_name").val().trim();
+            kw_htmls += `<tr><td>${kw}</td>`;
+            kw_htmls += `<td><a class="btn btn-primary pull-right" href="javascript:;" role="button" onclick="mkw_page.includs_logic(this)">`;
+            kw_htmls += `<span class="glyphicon glyphicon-remove"></span>删除</a></td></tr>`;
+            $(kw_htmls).appendTo($("#m_tbody_ikw"));
+        }
+        if (btn_type == "保存") {
+            let kws = "";
+            const m_kw = $(e).data("kw");
+            const trs = $("#m_tbody_ikw").find("tr");
+            for (let i = 0; i < trs.length; i++) {
+                kws += $(trs[i]).find("td").eq(0).text().trim() + ",";
+            }
+            if (m_kw == "" || kws == "") return;
+            kws = kws.substr(0, kws.length -1);
+            $.ajax({
+                url: "/mkw/save_includes",
+                type: "POST",
+                data: { i_kws: kws, m_kw: m_kw },
+                dataType: "JSON",
+                success: function(data) {
+                    if (data.flg == 0) {
+                        
+                    }
+                }
+            });
+        }
     }
 };
 //#endregion
 
+//#region 过滤词逻辑
 /*过滤词逻辑 */
-var fkw_page = {};
-
-/*包含词语逻辑 */
-var ikw_page = {};
+var fkw_page = {
+    /**
+     *初始化
+     */
+    init: function() {
+        $("#btnInsert").bind("click", fkw_page.insert);
+    },
+    /**
+     *新增过滤词
+     */
+    insert: function() {
+        const jc = $.confirm({
+            theme: "material",
+            closeIcon: true,
+            animation: "scale",
+            type: "orange",
+            title: "新增过滤词",
+            columnClass: "col-md-6 col-md-offset-3",
+            content:
+                '<div class="form-group">' +
+                "<label>过滤词：</label>" +
+                '<input type="text" id="f_name" class="form-control" placeholder="请输入过滤词名称..." required /></div>',
+            buttons: {
+                save: {
+                    text: "保存",
+                    btnClass: "btn-blue",
+                    action: function() {
+                        const f_name = this.$content.find("input#f_name").val();
+                        if (f_name.trim()) {
+                            $.ajax({
+                                type: "POST",
+                                dataType: "JSON",
+                                url: "/fkw/insert",
+                                data: { f_name: f_name.trim() },
+                                success: function(data) {
+                                    if (data.flg == 0) {
+                                        pagination.init();
+                                        jc.close();
+                                    } else {
+                                        jc.setContent(
+                                            `<div class="alert alert-danger">${data.msg}</div>`
+                                        );
+                                        jc.buttons.save.hide();
+                                    }
+                                }
+                            });
+                        }
+                        return false;
+                    }
+                },
+                cancel: {
+                    text: "关闭",
+                    btnClass: "btn-blue",
+                    action: function() {}
+                }
+            }
+        });
+    },
+    /**
+     * 删除过滤词
+     */
+    //prettier-ignore
+    delete: function(e) {        
+        const ele_tr = $(e).parent().parent().parent();
+        const name_kw = ele_tr.find("td").eq(0).text().trim();
+        var jc = $.confirm({
+            title: "提示！",
+            theme: "material",
+            closeIcon: true,
+            animation: "scale",
+            type: "orange",
+            columnClass: "col-md-6 col-md-offset-3",
+            content: "确定要删除过滤词 <strong>" + name_kw + "</strong> ？",
+            buttons: {
+                save: {
+                    text: "确认",
+                    btnClass: "btn-blue",
+                    action: function() {
+                        $.ajax({
+                            url: "/fkw/delete",
+                            type: "POST",
+                            dataType: "JSON",
+                            data: { f_name: name_kw },
+                            success: function(data) {
+                                jc.setContent(data.msg);
+                                jc.buttons.save.hide();
+                                pagination.init(); //刷新分页数据
+                            }
+                        });
+                        return false;
+                    }
+                },
+                cancel: {
+                    text: "关闭",
+                    btnClass: "btn-blue",
+                    action: function() {}
+                }
+            }
+        });
+    }
+};
+//#endregion
 
 $(function() {
     //分页初始化
@@ -508,8 +705,8 @@ $(function() {
     if ($(".mkw_page").length > 0) {
         mkw_page.init();
     }
-    if ($(".ikw_page").length > 0) {
-    }
+    //过滤词逻辑
     if ($(".fkw_page").length > 0) {
+        fkw_page.init();
     }
 });

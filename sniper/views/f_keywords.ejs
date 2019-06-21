@@ -6,7 +6,32 @@
     <div class="container" style="margin-top: -49px;">
         <% include ./partials/header %>
 
-        <h1>hello i'm filter keywords page...</h1>
+        <div class="panel panel-default" style="margin-top: 2px;">
+            <div class="panel-body" style="padding: 5px;">
+                <button id="btnInsert" type="button" class="btn btn-primary pull-right">新增</button>
+            </div>
+        </div>
+
+        <table class="table table-light" id="tab_main">
+            <thead class="thead-light" style="border-top: 1px solid #ddd;">
+                <tr>
+                    <th>主词</th>
+                    <th style="width: 50px;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="tab_body">
+                <tr>
+                    <td colspan="2">
+                        数据加载中...请稍后！
+                    </td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="2" id="tab_foot"></th>
+                </tr>
+            </tfoot>
+        </table>
 
     </div>
 </body>

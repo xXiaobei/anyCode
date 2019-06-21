@@ -105,19 +105,26 @@ s_main.statics.delete = function(json) {
 //分页
 s_main.statics.pagination = function(page, callback) {
     return new Promise((resolve, reject) => {
-        this.find()
-            .sort(page.sortName)
-            .skip((page.pageIndex - 1) * page.pageSize)
-            .limit(page.pageSize)
+        this.aggregate([
+            {
+                $lookup: {
+                    from: "include",
+                    localField: "name",
+                    foreignField: "parent",
+                    as: "includs"
+                }
+            },
+            { $project: { _id: 0, name: 1, channel: 1, ip: 1, status: 1, includs: { words: 1 } } },
+            { $sort: page.sortName },
+            { $skip: (page.pageIndex - 1) * page.pageSize },
+            { $limit: page.pageSize }
+        ])
             .then(docs => {
                 page.result = docs;
-                return this.aggregate([
-                    { $group: { _id: null, count: { $sum: 1 } } },
-                    { $project: { _id: 0 } }
-                ]);
+                return this.aggregate([{ $group: { _id: null, count: { $sum: 1 } } }]);
             })
-            .then(c => {
-                page.totalPages = c[0].count;
+            .then(res => {
+                page.totalPages = res[0].count;
                 page.pageCounter = Math.ceil(page.totalPages / page.pageSize); //求总页数
                 page.firstPage = page.pageIndex == 1 ? true : false;
                 page.lastPage = page.pageIndex == page.pageCounter ? true : false;
