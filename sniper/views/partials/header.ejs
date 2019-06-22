@@ -1,10 +1,10 @@
-<div class="jumbotron" style="margin-bottom: 5px; padding-bottom: 5px;">
+<div class="jumbotron" style="margin-bottom: 5px; padding-bottom: 5px;padding-top: 5px;">
     <h1 class="display-4">百度ｍ端挖词工具</h1>
-    <p class="lead">Subtitle</p>
-    <p class="lead">Subtitle１</p>
+    <div class="alert alert-info">精准的设置"过滤词"和"包含词"可以更精确的匹配行业词，过滤词对所有的主词都有效。</div>
+    <div class="alert alert-info">"包含词"可通过２种途径设置；１：新增主词时，２：在主词管理的编辑包含词功能中可以修改。</div>
 </div>
 <ul id="mainMenu" class="nav nav-tabs">
     <% menu.forEach(ele => { %>
-    <li class="<%= ele.active %>"><a href="<%- ele.url %>"><%= ele.name; %></a></li>    
+    <li class="<%= ele.active %>"><a href="<%- ele.url %>"><%= ele.name; %></a></li>
     <% }); %>
 </ul>

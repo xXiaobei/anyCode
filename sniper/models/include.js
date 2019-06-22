@@ -42,10 +42,22 @@ s_include.statics.insert = function(json) {
 //更新
 s_include.statics.update = function(condition, json) {
     return new Promise((resolve, reject) => {
-        this.updateOne(condition, json, (err, res) => {
-            if (err) reject(err);
-            resolve(res);
-        });
+        this.find({ parent: condition.parent })
+            .then(res => {
+                if (res.length > 0) return this.updateOne(condition, json);
+                else return this.insertMany({ parent: condition.parent, words: json.$set.words });
+            })
+            .then(res => {
+                resolve(res);
+            })
+            .catch(err => {
+                reject(err);
+                throw err;
+            });
+        // this.updateOne(condition, json, (err, res) => {
+        //     if (err) reject(err);
+        //     resolve(res);
+        // });
     });
 };
 

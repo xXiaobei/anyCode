@@ -51,13 +51,15 @@ var pagination = {
             }
             //生成主词列表
             if ($(".mkw_page").length > 0) {
-                let html_counter = `<strong class="text-danger">0</strong>`;
+                let html_counter = `<strong class="text-danger ts1">0</strong>`;
                 if (data[i].includs.length > 0) {
                     const c = data[i].includs[0].words.length;
-                    html_counter = `<strong class="text-success">${c}</strong>`;
+                    if (c > 0) {
+                        html_counter = `<strong class="text-success ts1">${c}</strong>`;
+                    }
                 }
                 tr_html += "<tr><td>" + data[i].name + "</td>";
-                tr_html += `<td>共有包含词 ${html_counter} 个...</td>`;
+                tr_html += `<td> ${html_counter} </td>`;
                 tr_html += '<td><div class="btn-group" role="group" aria-label="Button group">';
                 tr_html +=
                     '<button type="button" class="btn btn-default" title="编辑包含词" onclick="mkw_page.edit(this)">';
@@ -398,6 +400,13 @@ var home_page = {
 //#region 主关键词页面逻辑
 /*主关键词逻辑 */
 var mkw_page = {
+    /**
+     * 存储模态窗口
+     */
+    dialogTarget: null,
+    /**
+     * 初始化
+     */
     init: function() {
         $("#btn_insert").bind("click", mkw_page.insert);
     },
@@ -514,7 +523,6 @@ var mkw_page = {
         const req_url = "/mkw/get_includes?kw=" + m_kw;
         $.getJSON(req_url, function(data) {
             var i_kws = data.kws;
-            console.log(i_kws);
             if (i_kws != "") {
                 i_kws.split(",").forEach(k => {
                     tbody += `<tr><td>${k}</td>`;
@@ -522,7 +530,7 @@ var mkw_page = {
                     tbody += `<span class="glyphicon glyphicon-remove"></span>删除</a></td></tr>`;
                 });
             } else {
-                tbody += `<tr><td colspan="2">请添加包含词...</td>`;
+                tbody += `<tr class="empty_tr"><td colspan="2">请添加包含词...</td>`;
             }
             
             thead += `<ul class="super_table">`; 
@@ -533,7 +541,7 @@ var mkw_page = {
             const tb_htmls = `<table class="table table-hover"><tbody id="m_tbody_ikw">${tbody}</tbody></table>`;
             const content_htmls = thead + tb_htmls;
 
-            const jc = $.dialog({
+            mkw_page.dialogTarget = $.dialog({
                 theme: "material",
                 animation: "scale",
                 type: "orange",
@@ -556,10 +564,12 @@ var mkw_page = {
         if (btn_type == "添加") {
             let kw_htmls = ``;
             const kw = $("#m_ikw_name").val().trim();
+            const empty_tr = $("#m_tbody_ikw tr[class='empty_tr']");
             kw_htmls += `<tr><td>${kw}</td>`;
             kw_htmls += `<td><a class="btn btn-primary pull-right" href="javascript:;" role="button" onclick="mkw_page.includs_logic(this)">`;
             kw_htmls += `<span class="glyphicon glyphicon-remove"></span>删除</a></td></tr>`;
             $(kw_htmls).appendTo($("#m_tbody_ikw"));
+            if(empty_tr.length > 0) empty_tr.remove();
         }
         if (btn_type == "保存") {
             let kws = "";
@@ -576,9 +586,8 @@ var mkw_page = {
                 data: { i_kws: kws, m_kw: m_kw },
                 dataType: "JSON",
                 success: function(data) {
-                    if (data.flg == 0) {
-                        
-                    }
+                    mkw_page.dialogTarget.close();
+                    pagination.init();//刷新列表数据
                 }
             });
         }

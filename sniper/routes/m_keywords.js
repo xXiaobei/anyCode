@@ -121,6 +121,7 @@ router.post("/save_includes", (req, res, next) => {
 
     let ary_ikw = [];
     if (i_kws.indexOf(",") != -1) ary_ikw = i_kws.split(",");
+    else ary_ikw.push(i_kws);
 
     const c_json = { parent: m_kw };
     const u_json = { $set: { words: ary_ikw } };
