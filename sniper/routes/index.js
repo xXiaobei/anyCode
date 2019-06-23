@@ -67,35 +67,35 @@ router.post("/nextPage", function(req, res, next) {
 /**
  * 调用python 开始采集关键词
  */
-router.post("/work", function(req, res, next) {
-    try {
-        //判断采集任务是否超过４个
-        let counter = 0;
-        redis
-            .existsAsync("process_counter")
-            .then(res => {
-                return redis.getAsync("process_counter");
-            })
-            .then(res => {
-                if (res) counter = parseInt(res);
-            });
-        if (counter > 3) {
-            const msg = "采集最大进程为４，请等待其它进程结束后重试！";
-            res.send({ msg: msg, flg: 1 });
+router.post(
+    "/work",
+    function(req, res, next) {
+        m_main.live_counter().then(counter => {
+            if (counter < 5) next();
+            else {
+                res.send({ msg: "采集的最大进程数为５，请等待其它采集任务结束后重试！", flg: 1 });
+            }
+        });
+    },
+    function(req, res, next) {
+        try {
+            const kw = req.body.kw;
+            const channel = Date.now(); // 设置当前关键词的消息发布频道
+            const env_path = "/home/bbei/Documents/pythonVenv/anycode/bin/python3";
+            const py_path = path.join(path.dirname(__dirname), "sniper.py");
+            redis_sub.subscribe(channel); //redis 订阅消息频道
+            m_main.edit(
+                { name: kw },
+                { $set: { channel: channel, status: "start", ip: client_Ip } }
+            ); //更新主词状态
+            spawn(env_path, [py_path, kw, channel]);
+            res.send({ msg: "success", flg: 0, channel: channel });
+        } catch (error) {
+            m_main.edit({ name: kw }, { $set: { ip: "", channel: "", status: "" } }); //更新主词状态
+            res.send({ msg: "采集失败，请重试！" + error, flg: 1 });
         }
-        const kw = req.body.kw;
-        const channel = Date.now(); // 设置当前关键词的消息发布频道
-        const env_path = "/home/bbei/Documents/pythonVenv/anycode/bin/python3";
-        const py_path = path.join(path.dirname(__dirname), "sniper.py");
-        redis_sub.subscribe(channel); //redis 订阅消息频道
-        m_main.edit({ name: kw }, { $set: { channel: channel, status: "start", ip: client_Ip } }); //更新主词状态
-        spawn(env_path, [py_path, kw, channel]);
-        res.send({ msg: "success", flg: 0, channel: channel });
-    } catch (error) {
-        m_main.edit({ name: kw }, { $set: { ip: "", channel: "", status: "" } }); //更新主词状态
-        res.send({ msg: "采集失败，请重试！" + error, flg: 1 });
     }
-});
+);
 
 /**
  * 停止关键词采集

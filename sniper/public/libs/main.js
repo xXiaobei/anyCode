@@ -297,9 +297,10 @@ var home_page = {
             dataType: "JSON",
             data: { kw: kw, channel: channel },
             success: function(data) {
-                if (data.flg == 0) {
-                    home_page.btn_start_logic(jq_ele, data.channel);
-                    home_page.taskButtons.push(jq_ele);                   
+                if (data.flg == 0) {                    
+                    if(jq_ele.data("init")) jq_ele.removeData("init");
+                    else home_page.btn_start_logic(jq_ele, data.channel);
+                    home_page.taskButtons.push(jq_ele);
                 } else {
                     $.alert({
                         theme: "material",
@@ -363,6 +364,7 @@ var home_page = {
                 home_page.btn_start_logic(btn_target, d.c);
             }
             //重置数据库状态
+            $(btn_target).data("init","init");
             $(btn_target).data("url","/offwork");
             home_page.work(btn_target);
         }

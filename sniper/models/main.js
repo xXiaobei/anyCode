@@ -102,6 +102,24 @@ s_main.statics.delete = function(json) {
     });
 };
 
+//获取活动的采集词个数
+s_main.statics.live_counter = function() {
+    return new Promise((resolve, reject) => {
+        this.aggregate([
+            { $match: { channel: { $ne: "" } } },
+            { $group: { _id: null, count: { $sum: 1 } } }
+        ])
+            .then(res => {
+                if (res.length > 0) resolve(res[0].count);
+                else resolve(1); //首次执行默认为１
+            })
+            .catch(err => {
+                reject(err);
+                throw err;
+            });
+    });
+};
+
 //分页
 s_main.statics.pagination = function(page, callback) {
     return new Promise((resolve, reject) => {
