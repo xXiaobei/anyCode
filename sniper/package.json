@@ -19,7 +19,7 @@
     "http-errors": "~1.6.3",
     "jquery": "^3.4.1",
     "mongodb": "^3.2.7",
-    "mongoose": "^5.5.14",
+    "mongoose": "^5.7.5",
     "morgan": "~1.9.1",
     "nodemon": "^1.19.1",
     "redis": "^2.8.0",
